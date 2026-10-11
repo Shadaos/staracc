@@ -160,16 +160,14 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .rk .who small{font-size:12px;color:var(--muted)}
 
 /* cartes grand format : tableau + pronostic final (même taille que « Cette semaine ») */
-.bracket{--ch:178px;gap:12px}
-.bracket .col{width:120px;gap:8px}
-.bracket .col-b{gap:6px;height:calc(var(--n) * (var(--ch) + 6px))}
-.bracket .chip{position:relative;flex-direction:column;align-items:stretch;justify-content:flex-start;height:var(--ch);padding:6px;gap:5px;border-width:2px}
-.bracket .chip .av{width:100%;aspect-ratio:4/5;font-size:40px}
-.bracket .chip .nm{font:400 15px/1.1 var(--f-display);letter-spacing:.04em;text-transform:uppercase;text-align:left}
-.bracket .chip .tg{position:absolute;top:10px;right:10px;margin:0;font-size:12px;padding:4px 5px;background:rgba(22,4,10,.85)}
-.bracket .chip .tg.ko{background:var(--ko)}
-.bracket .chip .tg.ok,.bracket .chip .tg.bad{right:auto;left:10px}
-.bracket .chip.ghost{align-items:center;justify-content:center;font:400 34px var(--f-display)}
+.bracket{--ch:58px;gap:10px}
+.bracket .col{width:150px;gap:8px}
+.bracket .col-b{gap:5px;height:calc(var(--n) * (var(--ch) + 5px))}
+.bracket .chip{position:relative;height:var(--ch);padding:4px 6px 4px 4px;gap:8px;border-width:2px}
+.bracket .chip .av{width:40px;aspect-ratio:4/5;font-size:20px}
+.bracket .chip .nm{font:400 15px/1.1 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
+.bracket .chip .tg{font-size:11px}
+.bracket .chip.ghost{justify-content:center;font:400 22px var(--f-display)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
 .pcard{position:relative;display:flex;flex-direction:column;gap:5px;background:var(--panel2);border:2px solid var(--line);border-radius:4px;padding:6px;text-align:left;min-width:0}
 .pcard .av{width:100%;aspect-ratio:4/5;font-size:40px}
