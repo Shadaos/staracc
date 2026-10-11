@@ -179,7 +179,9 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .pcard .rmx{position:absolute;top:10px;right:10px;z-index:1;width:30px;height:30px;background:rgba(22,4,10,.85);color:var(--text)}
 .pcard.drag{cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .final .cards{min-height:150px}
-@media (max-width:480px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}.pcard b{font-size:13px}}
+@media (max-width:480px){
+  .when{flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none}.pill{font-size:11px;padding:3px 6px;gap:4px;letter-spacing:.02em;white-space:nowrap}
+  .brand .meta{font-size:13px}.cards{grid-template-columns:repeat(3,minmax(0,1fr))}.pcard b{font-size:13px}}
 .final .rank,.final .pool.dropzone{min-height:64px}
 .dropzone{border:2px dashed transparent;border-radius:4px;transition:border-color .12s ease}
 .dragging .dropzone{border-color:var(--line)}
@@ -231,10 +233,21 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .plist{display:flex;flex-direction:column;gap:6px}
 .plist .pl{grid-template-columns:minmax(0,1fr) auto}
 
+.fmini{display:none}
 @media (max-width:820px){
-  .sel-wrap{grid-template-columns:minmax(0,1fr)}
-  .sel-wrap .fighter{grid-column:1;grid-row:1;position:static}
-  .sel-main{grid-column:1;grid-row:2}
+  /* fiche réduite, épinglée sous les onglets */
+  .sel-wrap{display:flex;flex-direction:column;gap:14px}
+  .sel-wrap .fighter{position:sticky;top:var(--headH,0px);z-index:4;padding:10px 12px;gap:8px;background:var(--panel);box-shadow:0 10px 24px rgba(10,1,4,.65);border-color:var(--gold)}
+  .fighter .big{gap:12px}
+  .fighter .big .av{width:62px;font-size:28px}
+  .fighter .big h2{font-size:26px}
+  .fighter .big .status{margin-top:4px;font-size:11px;padding:2px 6px}
+  .fighter .stat,.fighter .gnote{display:none}
+  .fighter .fmini{display:block;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .fighter .fmini b{color:var(--text);font-weight:700}
+  .fighter .row{gap:6px}
+  .fighter .btn{padding:7px 10px;font-size:12px}
+  .fighter .kotxt{font-size:13px}
 }
 @media (max-width:480px){
   .sel-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -311,6 +324,7 @@ function groupStats(players){
   return{stats,complete,voters};
 }
 function consensus(g){if(!g.complete)return[];return ids.slice().sort((a,b)=>g.stats[a].sum/g.stats[a].n-g.stats[b].sum/g.stats[b].n||C[a].name.localeCompare(C[b].name,'fr'));}
+function nextDayShort(dow){const d=new Date();const diff=(dow-d.getDay()+7)%7;if(diff===0)return'aujourd’hui';d.setDate(d.getDate()+diff);return d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});}
 function nextDay(dow){const d=new Date();const diff=(dow-d.getDay()+7)%7;if(diff===0)return'aujourd’hui';d.setDate(d.getDate()+diff);return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});}
 function fmtLock(ms){return new Date(ms).toLocaleString('fr-FR',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).replace(':','h');}
 function fmtLeft(ms){const t=Math.max(0,ms-Date.now()),m=Math.floor(t/60000),d=Math.floor(m/1440),h=Math.floor(m%1440/60),mn=m%60;
@@ -359,7 +373,7 @@ function renderHead(){
   $('#head').innerHTML=`
     <div class="brand"><h1>Pronos <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z"/></svg><em>Star Ac’</em></h1>
       <span class="meta">Saison 14 · ${win?'Vainqueur : '+esc(C[win].name):alive+' en lice · semaine '+cur} · ${np} joueur${np>1?'s':''}</span></div>
-    <div class="when"><span class="pill">Nominations <b>${esc(nextDay(3))}</b></span><span class="pill">Prime <b>${esc(nextDay(6))}</b></span></div>
+    <div class="when"><span class="pill">Nominations <b>${esc(nextDayShort(3))}</b></span><span class="pill">Prime <b>${esc(nextDayShort(6))}</b></span></div>
     <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-act="tab" data-id="${k}">${l}</button>`).join('')}</nav>
     ${banner?`<p class="note">${esc(banner)}</p>`:''}`;
 }
@@ -381,11 +395,12 @@ function fighter(id){
   if(open&&st.k==='nom')acts+=`<button class="btn ${p.elim===id?'danger':'ghost'}" data-act="pick" data-f="elim" data-id="${id}">${p.elim===id?`Tu ${PR(id)} vois partir ✓`:`Je ${PR(id)} vois partir`}</button>`;
   if(open&&st.k!=='ko'&&st.k!=='win')acts+=`<button class="btn ghost" data-act="pick" data-f="immune" data-id="${id}">${p.immune===id?`Tu ${PR(id)} vois immunisé${E(id)} ✓`:`Je ${PR(id)} vois immunisé${E(id)}`}</button>`;
   return`<div class="big">${av(id)}<div><h2>${esc(c.name)}</h2>${c.age?`<span class="muted">${c.age} ans</span><br>`:''}<span class="status ${st.k}">${lbl(st.k,id)}</span></div></div>
-    ${st.k==='ko'?`<p class="muted">Éliminé${E(id)} en semaine ${st.week}, à la place n°${st.place}.</p>`:''}
+    ${st.k==='ko'?`<p class="muted kotxt">Éliminé${E(id)} en semaine ${st.week}, à la place n°${st.place}.</p>`:''}
+    <p class="fmini">Cote <b>${g.voters?winPct+' %':'—'}</b> · Moy. groupe <b>${avg?avg.toFixed(1).replace('.',','):'—'}</b> · Ton prono <b>${mi>-1?'n°'+(mi+1):'—'}</b></p>
     ${stat('Cote victoire',g.voters?winPct+' %':'—',winPct,true)}
     ${stat('Place moyenne du groupe',avg?avg.toFixed(1).replace('.',','):'—',avg?(N-avg)/(N-1)*100:0)}
     ${stat('Ton prono',mi>-1?'place n°'+(mi+1):'pas placé',mi>-1?(N-(mi+1))/(N-1)*100:0)}
-    <p class="muted">${g.complete?`Moyenne sur ${g.complete} classement${g.complete>1?'s':''} complet${g.complete>1?'s':''}.`:'Les stats du groupe apparaissent dès le premier classement complet.'}</p>
+    <p class="muted gnote">${g.complete?`Moyenne sur ${g.complete} classement${g.complete>1?'s':''} complet${g.complete>1?'s':''}.`:'Les stats du groupe apparaissent dès le premier classement complet.'}</p>
     <div class="row">${acts}</div>`;
 }
 function vSelect(){
@@ -614,7 +629,10 @@ function render(){
   if(keep){const i=document.getElementById(keep.id);if(i){i.focus();try{i.setSelectionRange(keep.s,keep.s);}catch(e){}}}
   initDrag();
   $('#orga-link').hidden=S.orga;
+  setHeadH();
 }
+function setHeadH(){const t=$('#head');document.documentElement.style.setProperty('--headH',(t&&t.offsetHeight?t.offsetHeight:0)+'px');}
+window.addEventListener('resize',setHeadH);
 
 /* ===================== écritures ===================== */
 let meTimer=null,meBusy=false,meAgain=false;
