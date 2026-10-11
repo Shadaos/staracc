@@ -5,56 +5,61 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pronos Star Academy</title>
 <meta name="description" content="Pronostics entre amis pour la Star Academy saison 14 : qui ira le plus loin ?">
-<meta name="theme-color" content="#100e1c">
+<meta name="theme-color" content="#1a050c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
-/* Layout: sticky arcade header with five screens (character select, funnel bracket, my picks, scoreboard, organiser). Dark only, by choice: it is a fighting-game screen. */
+/* Layout: sticky stage header with five screens. Look: prime-time stage of the 2026 season, crimson backdrop, gold light rays, gold stars. Dark only, by choice. */
 :root{
-  --bg:#100e1c; --panel:#1a1730; --panel2:#251f45; --line:#3b3568;
-  --text:#f3f0ff; --muted:#a9a3d6;
-  --gold:#ffd23f; --ko:#ff3b5c; --imm:#3fd8f7; --nom:#ff7a2e; --ok:#46e08a;
-  --f-display:'Bungee','Impact','Arial Black',sans-serif;
+  --bg:#16040a; --panel:#26070f; --panel2:#360a18; --line:#5e1729;
+  --text:#fff5ee; --muted:#dcb0b9;
+  --gold:#f8c94a; --gold2:#ffe7a3; --red:#d8152f;
+  --ko:#ff3b57; --imm:#5fd8ff; --nom:#ff9f43; --ok:#4ee08f;
+  --f-display:'Anton','Impact','Arial Narrow Bold',sans-serif;
   --f-body:'Barlow Semi Condensed','Arial Narrow',system-ui,sans-serif;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
 html{padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--text);font:500 16px/1.4 var(--f-body);-webkit-text-size-adjust:100%}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(115deg,transparent 0 22px,rgba(255,255,255,.02) 22px 23px)}
+body{background:radial-gradient(120% 70% at 50% -10%,#7a0b1f 0%,#3a0612 45%,var(--bg) 80%) fixed,var(--bg)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.55;
+  background:repeating-conic-gradient(from 0deg at 50% -6%,rgba(248,201,74,.09) 0deg 2.2deg,transparent 2.2deg 13deg);
+  -webkit-mask-image:radial-gradient(90% 80% at 50% 0%,#000 0%,transparent 75%);mask-image:radial-gradient(90% 80% at 50% 0%,#000 0%,transparent 75%)}
 .app{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 48px}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,a:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 a{color:var(--gold)}
 h2,h3,p{margin:0}
-h2{font:400 clamp(20px,4.6vw,28px)/1.05 var(--f-display);letter-spacing:.02em}
-h3{font:400 15px/1.1 var(--f-display);letter-spacing:.04em}
+h2{font:400 clamp(24px,5vw,34px)/1.05 var(--f-display);letter-spacing:.03em;text-transform:uppercase}
+h3{font:400 18px/1.1 var(--f-display);letter-spacing:.05em;text-transform:uppercase}
 .muted{color:var(--muted)}
 input[type=text]{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:3px;padding:10px;font:inherit}
 input[type=text]:focus{outline:2px solid var(--gold);outline-offset:0}
 code,.mono{font:13px/1.35 ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
 
 /* header */
-.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:2px solid var(--line);padding-block:12px 0;margin-inline:-16px;padding-inline:16px}
+.top{position:sticky;top:0;z-index:5;background:rgba(22,4,10,.86);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:2px solid var(--line);padding-block:12px 0;margin-inline:-16px;padding-inline:16px}
 .brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px}
-.brand h1{margin:0;font:400 clamp(22px,5.4vw,34px)/1 var(--f-display);letter-spacing:.02em}
-.brand h1 em{font-style:normal;color:var(--gold)}
+.brand h1{margin:0;display:flex;align-items:center;gap:.25em;font:400 clamp(26px,6vw,40px)/1 var(--f-display);letter-spacing:.03em;text-transform:uppercase}
+.brand h1 em{font-style:normal;background:linear-gradient(180deg,var(--gold2),var(--gold) 55%,#c98a12);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand h1 .star{width:.8em;height:.8em;flex:none;fill:var(--gold);filter:drop-shadow(0 0 8px rgba(248,201,74,.6))}
 .meta{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
 .when{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:8px}
 .pill{display:inline-flex;gap:6px;align-items:center;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:var(--panel);border:1px solid var(--line);padding:3px 8px}
 .pill b{color:var(--gold);font-weight:700}
 .tabs{display:flex;gap:4px 18px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
 .tab{flex:none;background:transparent;border:0;border-bottom:4px solid transparent;padding:10px 2px 8px;font-weight:700;font-size:14px;letter-spacing:.03em;color:var(--muted);white-space:nowrap}
-.tab[aria-selected=true]{color:var(--text);border-bottom-color:var(--gold)}
+.tab[aria-selected=true]{color:var(--gold2);border-bottom-color:var(--gold)}
 .note{margin-top:14px;background:var(--panel2);border-left:4px solid var(--nom);padding:10px 12px;font-size:15px}
 main{padding-top:18px;display:flex;flex-direction:column;gap:18px}
 footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
-#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:9;max-width:calc(100% - 32px);background:var(--gold);color:#1a1300;font-weight:700;padding:10px 14px;border-radius:3px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:9;max-width:calc(100% - 32px);background:var(--gold);color:#2a1300;font-weight:700;padding:10px 14px;border-radius:3px}
 
 /* generic */
-.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
-.btn{display:inline-block;text-decoration:none;background:var(--gold);color:#1a1300;border:0;border-radius:3px;padding:10px 14px;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 3px 0 #9c7b0e}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.035),transparent 40%),var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.btn{display:inline-block;text-decoration:none;background:linear-gradient(180deg,var(--gold2),var(--gold) 60%);color:#2a1300;border:0;border-radius:3px;padding:10px 14px;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 3px 0 #9c7b0e}
 .btn:active{transform:translateY(2px);box-shadow:0 1px 0 #9c7b0e}
 .btn[disabled]{background:var(--panel2);color:var(--muted);box-shadow:none;cursor:default}
 .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none}
@@ -80,15 +85,15 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .sel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(147px,1fr));gap:12px}
 .tile{position:relative;display:flex;flex-direction:column;gap:7px;padding:8px 8px 10px;background:var(--panel);border:2px solid var(--line);border-radius:4px;text-align:left;overflow:hidden}
 .tile .av{width:100%;aspect-ratio:4/5;font-size:60px}
-.tile .nm{font-weight:700;font-size:19px;letter-spacing:.03em;text-transform:uppercase;line-height:1}
+.tile .nm{font:400 22px/1 var(--f-display);letter-spacing:.04em;text-transform:uppercase}
 .tile .st{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--muted)}
-.tile[aria-pressed=true]{border-color:var(--gold);background:var(--panel2)}
+.tile[aria-pressed=true]{border-color:var(--gold);background:var(--panel2);box-shadow:0 0 0 1px var(--gold),0 0 22px rgba(248,201,74,.35)}
 .tile.st-nom .st{color:var(--nom)}.tile.st-imm .st{color:var(--imm)}.tile.st-win .st{color:var(--gold)}.tile.st-ko .st{color:var(--ko)}
 .tile.st-ko .av{filter:grayscale(1) brightness(.55)}
 .tile.st-ko::after{content:"KO";position:absolute;top:26%;left:-8%;right:-8%;text-align:center;font:400 28px/1 var(--f-display);color:#fff;background:var(--ko);padding:5px 0;transform:rotate(-12deg)}
 .fighter .big{display:flex;gap:14px;align-items:center}
 .fighter .big .av{width:120px;aspect-ratio:4/5;font-size:60px}
-.fighter .big h2{font-size:30px}
+.fighter .big h2{font-size:38px}
 .status{display:inline-block;margin-top:6px;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--line)}
 .status.nom{color:var(--nom);border-color:var(--nom)}.status.imm{color:var(--imm);border-color:var(--imm)}
 .status.ko{color:#fff;background:var(--ko);border-color:var(--ko)}.status.win{color:var(--gold);border-color:var(--gold)}
@@ -97,13 +102,13 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .stat .lbl span:last-child{font-variant-numeric:tabular-nums;color:var(--muted)}
 .hp{position:relative;height:14px;background:var(--bg);border:1px solid var(--line)}
 .hp i{display:block;height:100%;background:var(--ok)}
-.hp.gold i{background:var(--gold)}
+.hp.gold i{background:linear-gradient(90deg,#c98a12,var(--gold),var(--gold2))}
 .hp::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 9px,var(--bg) 9px 10px)}
 
 /* bracket */
 .seg-bar{display:inline-flex;align-self:flex-start;border:1px solid var(--line);max-width:100%}
 .seg{background:var(--panel);border:0;padding:8px 14px;font-weight:700;font-size:14px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.seg.on{background:var(--gold);color:#1a1300}
+.seg.on{background:var(--gold);color:#2a1300}
 .bracket-scroll{overflow-x:auto;border:1px solid var(--line);background:var(--panel);padding:14px 14px 16px}
 .bracket{display:flex;gap:10px;min-width:max-content}
 .col{display:flex;flex-direction:column;gap:8px;width:122px;flex:none}
@@ -165,7 +170,7 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .pick[aria-pressed=true]{border-color:var(--gold);background:var(--panel)}
 .pick.el[aria-pressed=true]{border-color:var(--ko)}
 .pick.im[aria-pressed=true]{border-color:var(--imm)}
-.pick[aria-pressed=true]::after{content:"✓";position:absolute;top:8px;right:8px;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:var(--gold);color:#1a1300;font-weight:700}
+.pick[aria-pressed=true]::after{content:"✓";position:absolute;top:8px;right:8px;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:var(--gold);color:#2a1300;font-weight:700}
 .pick.el[aria-pressed=true]::after{background:var(--ko);color:#fff}
 .pick.im[aria-pressed=true]::after{background:var(--imm)}
 .pick[disabled]{cursor:default;opacity:.55}
@@ -320,7 +325,7 @@ function renderHead(){
   if(!banner&&S.conn==='noconfig')banner='Le site n’est pas encore relié à sa base de données : les pronos ne peuvent pas être enregistrés pour l’instant.';
   else if(!banner&&S.conn==='ok'&&!S.seasonExists)banner='La saison n’est pas encore ouverte par l’organisateur.';
   $('#head').innerHTML=`
-    <div class="brand"><h1>Pronos <em>Star Ac’</em></h1>
+    <div class="brand"><h1>Pronos <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z"/></svg><em>Star Ac’</em></h1>
       <span class="meta">Saison 14 · ${win?'Vainqueur : '+esc(C[win].name):alive+' en lice · semaine '+cur} · ${np} joueur${np>1?'s':''}</span></div>
     <div class="when"><span class="pill">Nominations <b>${esc(nextDay(3))}</b></span><span class="pill">Prime <b>${esc(nextDay(6))}</b></span></div>
     <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-act="tab" data-id="${k}">${l}</button>`).join('')}</nav>
