@@ -424,6 +424,9 @@ function stat(label,val,pct,gold){
 function viewSeason(){if(!S.noSpoil){S.masked=0;return S.real;}const r=maskSeason(S.real,Date.now());S.masked=r.hidden;return r.v;}
 function weekOpen(n){return Date.now()<lockAt(S.season,n);}
 function myPick(n){return S.uid?S.picks[n+'_'+S.uid]||null:null;}
+const TF1='https://www.tf1.fr/';
+const TF1_PAGE={zoe:'dossier/zoe-star-academy-2026-77567446',felix:'dossier/felix-star-academy-2026-54569929'};
+const tf1Url=id=>TF1+(TF1_PAGE[id]||'tf1/star-academy');
 function fighter(id){
   const c=C[id],st=status(id),g=groupStats(S.players),gs=g.stats[id],mi=cleanOrder(S.me.order).indexOf(id);
   const winPct=g.voters?Math.round(100*gs.win/g.voters):0,avg=gs.n?gs.sum/gs.n:null;
@@ -439,7 +442,7 @@ function fighter(id){
     ${stat('Place moyenne du groupe',avg?avg.toFixed(1).replace('.',','):'—',avg?(N-avg)/(N-1)*100:0)}
     ${stat('Ton prono',mi>-1?'place n°'+(mi+1):'pas placé',mi>-1?(N-(mi+1))/(N-1)*100:0)}
     <p class="muted gnote">${g.complete?`Moyenne sur ${g.complete} classement${g.complete>1?'s':''} complet${g.complete>1?'s':''}.`:'Les stats du groupe apparaissent dès le premier classement complet.'}</p>
-    <div class="row">${acts}</div>`;
+    <div class="row">${acts}<a class="btn ghost" href="${tf1Url(id)}" target="_blank" rel="noopener">Sa page TF1 ↗</a></div>`;
 }
 function vSelect(){
   return`<div class="sel-wrap"><div class="card fighter">${fighter(S.sel)}</div>
