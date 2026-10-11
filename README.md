@@ -32,14 +32,12 @@ Tant que l'étape 4 n'est pas faite, tes changements ne sont visibles que dans t
 
 ## Changer une photo
 
-Les portraits viennent du diaporama officiel publié par Puremédias. Celui de Félix, absent du diaporama, est dans `photos/felix.jpg`.
+Les portraits officiels sont dans le dossier `photos/` (un fichier par élève, par exemple `photos/amel.jpg`). Pour en changer un, remplace simplement le fichier en gardant le même nom.
 
-Pour ajouter ou remplacer une photo :
-1. Mets l'image dans le dépôt, par exemple `photos/felix.jpg`.
-2. Dans `data.json`, remplis la partie `photos` comme ceci :
+Tu peux aussi pointer vers une autre image depuis `data.json` :
 
 ```json
-"photos": { "felix": "photos/felix.jpg" }
+"photos": { "felix": "photos/felix-2.jpg" }
 ```
 
 Les identifiants des élèves sont leur prénom en minuscules et sans accent : `amel`, `antoine`, `brieuc`, `cameron`, `elija`, `felix`, `isabella`, `khalil`, `kylian`, `leeloo`, `maud`, `melina`, `morgan`, `noemie`, `tracy`, `ydriss`, `zoe`.
