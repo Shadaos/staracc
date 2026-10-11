@@ -27,9 +27,9 @@ En ligne : https://shadaos.github.io/staracc/
 4. Dans le menu de gauche, va dans **Build → Authentication → Commencer**, onglet **Sign-in method**. Active **Anonyme**, puis **Adresse e-mail/Mot de passe** (sans le lien e-mail), et enregistre.
 5. Toujours dans **Authentication**, ouvre **Paramètres → Domaines autorisés**, clique sur **Ajouter un domaine** et ajoute `shadaos.github.io`.
 6. Va dans **Build → Firestore Database → Créer une base de données**. Choisis un emplacement en Europe (par exemple `eur3`), puis le **mode production**.
-7. Ouvre le site, puis clique sur **Espace organisateur** tout en bas. Copie **Ton identifiant**.
-8. Dans **Firestore → Règles**, colle tout le contenu de `firestore.rules` et remplace `COLLE_TON_IDENTIFIANT_ICI` par ton identifiant. Clique sur **Publier**.
-9. Reviens sur le site, dans l'Espace organisateur, et clique sur **Ouvrir la saison**.
+7. Ouvre le site et connecte-toi avec le pseudo **Aurélien** et ton code.
+8. Dans **Firestore → Règles**, colle tout le contenu de `firestore.rules`, puis clique sur **Publier**.
+9. Reviens sur le site, ouvre l'onglet **Orga** et clique sur **Ouvrir la saison**.
 
 Une fois ces étapes faites, tes amis peuvent jouer.
 
@@ -78,4 +78,6 @@ Remplace le fichier dans `photos/` en gardant le même nom. Le nom du fichier es
 
 ## Droits d'organisateur
 
-Tes droits sont liés à l'identifiant affiché dans l'Espace organisateur. Pour les garder sur tous tes appareils, saisis ton pseudo et ton code **d'abord dans le navigateur où tu as copié cet identifiant** : le site y ajoute le code sans changer l'identifiant. Ensuite, connecte-toi avec ce même pseudo et ce même code sur tes autres appareils.
+L'onglet **Orga** et le lien « Espace organisateur » n'apparaissent que pour le joueur dont le pseudo est **Aurélien** (identifiant `aurelien`), sur n'importe quel appareil. Les règles Firestore appliquent la même restriction côté serveur : même en bricolant la page, personne d'autre ne peut modifier les résultats.
+
+Pour changer d'organisateur, remplace `aurelien` par le nouvel identifiant dans `ORGA_LOGIN` (fichier `index.html`) et dans `firestore.rules`, puis republie les règles.

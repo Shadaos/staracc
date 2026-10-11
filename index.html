@@ -269,7 +269,7 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 <div class="app">
   <header class="top" id="head"></header>
   <main id="view"><p class="muted">Chargement…</p></main>
-  <footer><span>Pronos entre amis · Star Academy saison 14 · site non officiel</span><a href="#orga" id="orga-link">Espace organisateur</a></footer>
+  <footer><span>Pronos entre amis · Star Academy saison 14 · site non officiel</span><a href="#orga" id="orga-link" hidden>Espace organisateur</a></footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
@@ -348,13 +348,15 @@ const ls={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set
 const S={tab:ls.get('sa14-tab')||'select',sub:ls.get('sa14-sub')||'week',sel:ids[0],mode:'reel',focus:null,
   conn:'loading',seasonExists:false,season:normSeason(null),real:normSeason(null),noSpoil:ls.get('sa14-nospoil')==='1',players:{},picks:{},uid:null,
   me:{name:'',order:[]},meDirty:false,save:'',nameEdit:false,
-  form:{name:null,code:''},anon:true,login:'',busy:false,dragging:false,orga:location.hash==='#orga'||ls.get('sa14-orga')==='1',note:'',pendingOut:null,delId:null,badImg:new Set()};
+  form:{name:null,code:''},anon:true,login:'',busy:false,dragging:false,note:'',pendingOut:null,delId:null,badImg:new Set()};
 let fb=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LBL={in:'En lice',nom:'Nominé',imm:'Immunisé',ko:'KO',win:'Vainqueur'};
 const E=id=>C[id].f?'e':'',PR=id=>C[id].f?'la':'le';
 function lbl(k,id){if(k==='nom'||k==='imm')return LBL[k]+E(id);if(k==='win')return C[id].f?'Gagnante':'Vainqueur';return LBL[k];}
+const ORGA_LOGIN='aurelien';
+const isOrga=()=>!!(S.uid&&!S.anon&&S.login===ORGA_LOGIN);
 const registered=()=>!!(S.uid&&S.players[S.uid]);
 
 function av(id){const c=C[id],u=c.photo;
@@ -379,7 +381,7 @@ function errText(e){const c=e&&e.code||'';
 function renderHead(){
   const s=S.season,out=outOrder(s).length,alive=N-out,cur=curWeek(s),win=winnerId(s),np=Object.keys(S.players).length;
   const tabs=[['select','Sélection'],['bracket','Tableau'],['mine','Mon prono'],['board','Classement']];
-  if(S.orga)tabs.push(['orga','Orga']);
+  if(isOrga())tabs.push(['orga','Orga']);
   let banner=S.note;
   if(!banner&&S.conn==='noconfig')banner='Le site n’est pas encore relié à sa base de données : les pronos ne peuvent pas être enregistrés pour l’instant.';
   else if(!banner&&S.conn==='ok'&&!S.seasonExists)banner='La saison n’est pas encore ouverte par l’organisateur.';
@@ -473,7 +475,7 @@ function vBracket(){
 function whoCard(){
   if(S.conn==='noconfig')return`<div class="card"><p class="muted">Les pronos s’enregistreront ici dès que l’organisateur aura relié le site à sa base de données.</p></div>`;
   if(S.conn!=='ok'||!S.uid)return`<div class="card"><p class="muted">Connexion en cours…</p></div>`;
-  if(!S.seasonExists)return`<div class="card"><p class="muted">La saison n’est pas encore ouverte. Reviens un peu plus tard.</p></div>`;
+  if(!S.seasonExists&&S.uid&&!S.anon&&!isOrga())return`<div class="card"><p class="muted">La saison n’est pas encore ouverte. Reviens un peu plus tard.</p></div>`;
   const busy=S.busy?' disabled':'';
   if(registered()&&!S.anon){
     if(S.nameEdit)return`<div class="card"><h3>Changer de pseudo affiché</h3>
@@ -495,7 +497,7 @@ function whoCard(){
 function needGate(){
   if(S.conn==='noconfig'||S.conn==='err')return false;
   if(S.conn!=='ok'||!S.authReady)return true;
-  if(!S.seasonExists)return false;
+  if(!S.seasonExists)return !isOrga();
   return !(registered()&&!S.anon);
 }
 function vGate(){
@@ -602,7 +604,7 @@ function vOrga(){
   const idCard=`<div class="card"><h3>Ton identifiant</h3>
     <p class="mono" id="myuid">${esc(S.uid||'connexion…')}</p>
     <div class="row"><button class="btn ghost" data-act="copyUid"${S.uid?'':' disabled'}>Copier</button></div>
-    <p class="muted">À coller une seule fois dans les règles Firestore (voir README). Seul ce navigateur peut ensuite modifier les résultats.</p></div>`;
+    <p class="muted">Les droits d’organisateur sont liés au compte « aurelien » dans les règles Firestore, sur tous tes appareils.</p></div>`;
   if(!S.seasonExists)return`<h2>Espace organisateur</h2>${idCard}<div class="card"><h3>Ouvrir la saison</h3>
     <p class="muted">Crée les résultats de la saison et les heures de fermeture des semaines (chaque dimanche à minuit).</p>
     <div class="row"><button class="btn" data-act="initSeason">Ouvrir la saison</button></div></div>`;
@@ -627,7 +629,7 @@ function vOrga(){
     <div class="card"><h3>Réglages</h3>
       <div class="row"><button class="btn ghost" data-act="lock">${s.rankingOpen?'Verrouiller les classements finaux':'Rouvrir les classements finaux'}</button>
       <button class="btn ghost" data-act="undo"${out.length?'':' disabled'}>Annuler la dernière élimination</button>
-      <button class="btn ghost" data-act="quitOrga">Quitter l’espace organisateur</button></div>
+      <button class="btn ghost" data-act="quitOrga">Retour au site</button></div>
       <p class="muted">Classements finaux ${s.rankingOpen?'ouverts : les joueurs peuvent encore les modifier. Pense à les verrouiller au moment voulu.':'verrouillés.'}</p></div>
     ${idCard}`;
 }
@@ -637,7 +639,7 @@ function render(){
   S.renderLater=false;
   const sc=document.querySelector('.bracket-scroll'),left=sc?sc.scrollLeft:0;
   const act=document.activeElement,keep=act&&['pname','pcode'].includes(act.id)?{id:act.id,s:act.selectionStart}:null;
-  if(S.tab==='orga'&&!S.orga)S.tab='select';
+  if(S.tab==='orga'&&!isOrga())S.tab='select';
   const gate=needGate();
   document.body.classList.toggle('gated',gate);
   if(gate){$('#head').innerHTML='';$('#view').innerHTML=vGate();}
@@ -647,7 +649,7 @@ function render(){
   const sc2=document.querySelector('.bracket-scroll');if(sc2)sc2.scrollLeft=left;
   if(keep){const i=document.getElementById(keep.id);if(i){i.focus();try{i.setSelectionRange(keep.s,keep.s);}catch(e){}}}
   initDrag();
-  $('#orga-link').hidden=S.orga;
+  $('#orga-link').hidden=!isOrga()||S.tab==='orga';
   setHeadH();
 }
 function setHeadH(){const t=$('#head');document.documentElement.style.setProperty('--headH',(t&&t.offsetHeight?t.offsetHeight:0)+'px');}
@@ -730,7 +732,7 @@ async function saveSeason(mut){
 function editWeek(n,fn){saveSeason(s=>{const k=String(n);s.weeks[k]=Object.assign({immune:null,nominees:[],out:[]},s.weeks[k]);fn(s.weeks[k]);});}
 
 /* ===================== actions ===================== */
-function enterOrga(){S.orga=true;ls.set('sa14-orga','1');S.tab='orga';ls.set('sa14-tab','orga');
+function enterOrga(){if(!isOrga()){render();return;}S.tab='orga';ls.set('sa14-tab','orga');
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0);}
 window.addEventListener('hashchange',()=>{if(location.hash==='#orga')enterOrga();});
 function setNoSpoil(v){S.noSpoil=v;ls.set('sa14-nospoil',v?'1':'0');S.season=viewSeason();render();}
@@ -773,7 +775,7 @@ document.addEventListener('click',e=>{
   else if(a==='del'){S.delId=id;render();}
   else if(a==='delNo'){S.delId=null;render();}
   else if(a==='delYes'){S.delId=null;if(fb)fb.fs.deleteDoc(fb.fs.doc(fb.db,'players',id)).catch(err=>toast('Suppression refusée ('+errText(err)+').'));}
-  else if(a==='quitOrga'){S.orga=false;ls.del('sa14-orga');S.tab='select';ls.set('sa14-tab','select');render();}
+  else if(a==='quitOrga'){S.tab='select';ls.set('sa14-tab','select');render();}
 });
 $('#orga-link').addEventListener('click',e=>{e.preventDefault();enterOrga();});
 setInterval(()=>{const before=S.masked;S.season=viewSeason();if((before!==S.masked||(S.tab==='mine'&&S.sub==='week'))&&!document.activeElement?.matches('input'))render();},60000);
