@@ -155,6 +155,8 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .ptsbig{font:400 34px/1 var(--f-display);color:var(--gold2)}
 .ptsbig small{font:600 14px var(--f-body);color:var(--muted)}
 .final-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+#rankGrid .pcard{cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+#rankGrid .grip{position:absolute;top:10px;right:10px;width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:rgba(22,4,10,.85);color:var(--gold2);font-size:16px}
 .pick-rank{cursor:pointer;transition:border-color .12s ease,opacity .12s ease}
 .pick-rank:not(.ranked) .av{opacity:.92}
 .pick-rank.ranked{border-color:var(--gold)}
@@ -288,6 +290,7 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
   <footer><span>Pronos entre amis · Star Academy saison 14 · site non officiel</span><a href="#orga" id="orga-link" hidden>Espace organisateur</a></footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script type="module">
 import { firebaseConfig } from './firebase-config.js?v=7';
 
@@ -558,22 +561,38 @@ function histBlock(){
 }
 function vFinal(){
   const s=S.season,o=cleanOrder(S.me.order),P=places(s),edit=registered()&&s.rankingOpen,full=o.length===N,val=!!S.me.validated&&full;
-  const cards=ids.map(id=>{const k=o.indexOf(id),a=P[id];let small='';
-    if(k>-1)small=k===0?(C[id].f?'Gagnante':'Vainqueur'):k===N-1?'1er éliminé':'Place n°'+(k+1);
-    if(a!=null)small+=(small?' · ':'')+'réel n°'+a;
-    const cls='pcard pick-rank'+(k>-1?' ranked':'')+(k===0?' first':'');
-    const inner=`${k>-1?`<span class="num">${k+1}</span>`:''}${av(id)}<b>${esc(C[id].name)}</b><small>${small||'&nbsp;'}</small>`;
-    return edit?`<button class="${cls}" data-act="rank" data-id="${id}" aria-pressed="${k>-1}" aria-label="${esc(C[id].name)}${k>-1?', place '+(k+1):''}">${inner}</button>`:`<div class="${cls}">${inner}</div>`;}).join('');
-  const next=o.length<N?`Touche l’élève n°${o.length+1}${o.length===0?' : ton vainqueur':o.length===N-1?' : le premier éliminé':''}.`:'Classement complet.';
+  const sub=(id,k)=>{const a=P[id];let t='';if(k>-1)t=k===0?(C[id].f?'Gagnante':'Vainqueur'):k===N-1?'1er éliminé':'Place n°'+(k+1);if(a!=null)t+=(t?' · ':'')+'réel n°'+a;return t||'&nbsp;';};
+  let cards;
+  if(full){ // classement complet : rangé dans l'ordre, réorganisable par glisser-déposer
+    cards=o.map((id,k)=>`<div class="pcard pick-rank ranked${k===0?' first':''}${edit?' drag':''}" data-id="${id}"><span class="num">${k+1}</span>${av(id)}<b>${esc(C[id].name)}</b><small>${sub(id,k)}</small>${edit?'<span class="grip" aria-hidden="true">⠿</span>':''}</div>`).join('');
+  }else{ // en cours : photos fixes, on touche dans l'ordre
+    cards=ids.map(id=>{const k=o.indexOf(id),cls='pcard pick-rank'+(k>-1?' ranked':'')+(k===0?' first':'');
+      const inner=`${k>-1?`<span class="num">${k+1}</span>`:''}${av(id)}<b>${esc(C[id].name)}</b><small>${sub(id,k)}</small>`;
+      return edit?`<button class="${cls}" data-act="rank" data-id="${id}" aria-pressed="${k>-1}" aria-label="${esc(C[id].name)}${k>-1?', place '+(k+1):''}">${inner}</button>`:`<div class="${cls}">${inner}</div>`;}).join('');
+  }
+  const next=`Touche l’élève n°${o.length+1}${o.length===0?' : ton vainqueur':o.length===N-1?' : le premier éliminé':''}.`;
   const help=!s.rankingOpen?'Les classements sont verrouillés par l’organisateur : ton classement ne peut plus changer.'
+    :full?(val?'Ton classement est validé. Pour le modifier, fais glisser un élève à sa nouvelle place, puis valide à nouveau.':'Classement complet, rangé dans ton ordre. Fais glisser un élève pour changer sa place, puis valide.')
     :`Touche les élèves dans l’ordre : le 1er touché est ton vainqueur, le 17e le premier éliminé. Touche un élève déjà numéroté pour lui retirer son numéro. Chaque clic est enregistré. ${next}`;
-  const strip=o.length?`<p class="strip">${o.map((id,k)=>`<span><b>${k+1}.</b> ${esc(C[id].name)}</span>`).join('')}</p>`:'';
+  const strip=o.length&&!full?`<p class="strip">${o.map((id,k)=>`<span><b>${k+1}.</b> ${esc(C[id].name)}</span>`).join('')}</p>`:'';
   const valBox=edit?`<label class="check valck${val?' on':''}"><input type="checkbox" id="validate"${val?' checked':''}${full?'':' disabled'}> ${full?(val?'Classement validé ✓':'Je valide mon classement'):`Je valide mon classement (place les ${N} élèves d’abord)`}</label>`
     :(val?'<p class="valok">Classement validé ✓</p>':'');
   return`<div class="card"><div class="wk-head"><h3>Mon classement final · ${o.length}/${N}</h3>${saveLine()}</div>
       <p class="muted">${help}</p>${strip}
       <div class="row">${valBox}${edit&&o.length?(S.resetAsk?'<button class="btn danger" data-act="resetYes">Tout effacer</button><button class="btn ghost" data-act="resetNo">Annuler</button>':'<button class="btn ghost" data-act="reset">Recommencer</button>'):''}</div></div>
-    <div class="cards final-grid">${cards}</div>`;
+    <div class="cards final-grid" id="${full&&edit?'rankGrid':'pickGrid'}">${cards}</div>`;
+}
+let sortable=null;
+function initDrag(){
+  if(sortable){try{sortable.destroy();}catch(e){}sortable=null;}
+  const g=$('#rankGrid');if(!g||!window.Sortable)return;
+  sortable=Sortable.create(g,{animation:150,delay:150,delayOnTouchOnly:true,touchStartThreshold:5,draggable:'.drag',
+    ghostClass:'drag-ghost',chosenClass:'drag-chosen',scroll:true,scrollSensitivity:90,scrollSpeed:14,bubbleScroll:true,
+    onStart(){S.dragging=true;document.body.classList.add('dragging');},
+    onEnd(){S.dragging=false;document.body.classList.remove('dragging');
+      const next=cleanOrder([...g.children].map(el=>el.dataset.id));
+      if(next.length===N&&next.join()!==cleanOrder(S.me.order).join()){const was=S.me.validated;S.me.order=next;S.me.validated=false;queueMe();if(was)toast('Classement modifié : valide-le à nouveau pour confirmer.');}
+      else render();}});
 }
 function vMine(){
   const seg=[['week','Cette semaine'],['final','Pronostic final']].map(([k,l])=>`<button class="seg${S.sub===k?' on':''}" data-act="sub" data-id="${k}" aria-pressed="${S.sub===k}">${l}</button>`).join('');
@@ -673,6 +692,7 @@ function render(){
   const sc2=document.querySelector('.bracket-scroll');if(sc2)sc2.scrollLeft=left;
   if(keep){const i=document.getElementById(keep.id);if(i){i.focus();try{i.setSelectionRange(keep.s,keep.s);}catch(e){}}}
   $('#orga-link').hidden=!isOrga()||S.tab==='orga';
+  initDrag();
   setHeadH();
 }
 function setHeadH(){const t=$('#head');document.documentElement.style.setProperty('--headH',(t&&t.offsetHeight?t.offsetHeight:0)+'px');}
