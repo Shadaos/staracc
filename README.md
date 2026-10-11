@@ -2,7 +2,7 @@
 
 Site de pronostics entre amis pour la Star Academy 2026. Site non officiel.
 
-En ligne : https://shadaos.github.io/staracc/
+En ligne : https://pronos-starac.github.io/Star-Academy/
 
 ## Comment ça marche
 
@@ -25,7 +25,7 @@ En ligne : https://shadaos.github.io/staracc/
 2. Sur l'accueil du projet, clique sur l'icône **Web** (`</>`). Nomme l'application, puis clique sur **Enregistrer l'application**. Ne coche pas « Firebase Hosting ». Firebase t'affiche un bloc `const firebaseConfig = { ... }` : copie-le.
 3. Colle ce bloc dans `firebase-config.js` à la place de `null` (ou envoie-le à Claude, qui le fera).
 4. Dans le menu de gauche, va dans **Build → Authentication → Commencer**, onglet **Sign-in method**. Active **Anonyme**, puis **Adresse e-mail/Mot de passe** (sans le lien e-mail), et enregistre.
-5. Toujours dans **Authentication**, ouvre **Paramètres → Domaines autorisés**, clique sur **Ajouter un domaine** et ajoute `shadaos.github.io`.
+5. Toujours dans **Authentication**, ouvre **Paramètres → Domaines autorisés**, clique sur **Ajouter un domaine** et ajoute `pronos-starac.github.io`.
 6. Va dans **Build → Firestore Database → Créer une base de données**. Choisis un emplacement en Europe (par exemple `eur3`), puis le **mode production**.
 7. Ouvre le site et connecte-toi avec le pseudo **Aurélien** et ton code.
 8. Dans **Firestore → Règles**, colle tout le contenu de `firestore.rules`, puis clique sur **Publier**.
