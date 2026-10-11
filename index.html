@@ -92,7 +92,7 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .tile.st-ko .av{filter:grayscale(1) brightness(.55)}
 .tile.st-ko::after{content:"KO";position:absolute;top:26%;left:-8%;right:-8%;text-align:center;font:400 28px/1 var(--f-display);color:#fff;background:var(--ko);padding:5px 0;transform:rotate(-12deg)}
 .fighter .big{display:flex;gap:14px;align-items:center}
-.fighter .big .av{width:120px;aspect-ratio:4/5;font-size:60px}
+.fighter .big .av{width:100px;aspect-ratio:4/5;font-size:60px}
 .fighter .big h2{font-size:38px}
 .status{display:inline-block;margin-top:6px;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--line)}
 .status.nom{color:var(--nom);border-color:var(--nom)}.status.imm{color:var(--imm);border-color:var(--imm)}
@@ -284,6 +284,9 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
   .tile,.chip,.btn,.pick{transition:transform .08s ease,border-color .12s ease}
   .tile:active,.pick:active{transform:scale(.97)}
 }
+.strow{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap;white-space:nowrap;margin-top:6px}
+.strow .status{margin-top:0!important}
+.fighter .btn.tf1{padding:4px 7px;font-size:10.5px;box-shadow:none}
 </style>
 </head>
 <body>
@@ -425,7 +428,7 @@ function viewSeason(){if(!S.noSpoil){S.masked=0;return S.real;}const r=maskSeaso
 function weekOpen(n){return Date.now()<lockAt(S.season,n);}
 function myPick(n){return S.uid?S.picks[n+'_'+S.uid]||null:null;}
 const TF1='https://www.tf1.fr/';
-const TF1_PAGE={zoe:'dossier/zoe-star-academy-2026-77567446',felix:'dossier/felix-star-academy-2026-54569929'};
+const TF1_PAGE={amel:'dossier/amel-star-academy-2026-30781168',antoine:'dossier/antoine-star-academy-2026-02929471',brieuc:'dossier/brieuc-star-academy-2026-72402619',cameron:'dossier/cameron-star-academy-2026-17129215',elija:'dossier/elija-star-academy-2026-38364324',felix:'dossier/felix-star-academy-2026-54569929',isabella:'dossier/isabella-star-academy-2026-87867344',khalil:'dossier/khalil-star-academy-2026-90105466',kylian:'dossier/kylian-star-academy-2026-26602218',leeloo:'dossier/leeloo-star-academy-2026-40122199',maud:'dossier/maud-star-academy-2026-21591832',melina:'dossier/melina-star-academy-2026-37646314',morgan:'dossier/morgan-star-academy-2026-29024870',noemie:'dossier/noemie-star-academy-2026-45450544',tracy:'dossier/tracy-star-academy-2026-62850511',ydriss:'dossier/ydriss-star-academy-2026-85173931',zoe:'dossier/zoe-star-academy-2026-77567446'};
 const tf1Url=id=>TF1+(TF1_PAGE[id]||'tf1/star-academy');
 function fighter(id){
   const c=C[id],st=status(id),g=groupStats(S.players),gs=g.stats[id],mi=cleanOrder(S.me.order).indexOf(id);
@@ -435,14 +438,14 @@ function fighter(id){
   if(st.k!=='ko'&&st.k!=='win'&&s.rankingOpen)acts+=mi===0?`<button class="btn" disabled>Ton vainqueur ✓</button>`:`<button class="btn" data-act="winner" data-id="${id}">Mon vainqueur</button>`;
   if(open&&st.k==='nom')acts+=`<button class="btn ${p.elim===id?'danger':'ghost'}" data-act="pick" data-f="elim" data-id="${id}">${p.elim===id?`Tu ${PR(id)} vois partir ✓`:`Je ${PR(id)} vois partir`}</button>`;
   if(open&&st.k!=='ko'&&st.k!=='win')acts+=`<button class="btn ghost" data-act="pick" data-f="immune" data-id="${id}">${p.immune===id?`Tu ${PR(id)} vois immunisé${E(id)} ✓`:`Je ${PR(id)} vois immunisé${E(id)}`}</button>`;
-  return`<div class="big">${av(id)}<div><h2>${esc(c.name)}</h2>${c.age?`<span class="muted">${c.age} ans</span><br>`:''}<span class="status ${st.k}">${lbl(st.k,id)}</span></div></div>
+  return`<div class="big">${av(id)}<div><h2>${esc(c.name)}</h2>${c.age?`<span class="muted">${c.age} ans</span><br>`:''}<span class="strow"><span class="status ${st.k}">${lbl(st.k,id)}</span><a class="btn ghost tf1" href="${tf1Url(id)}" target="_blank" rel="noopener">Sa page TF1 ↗</a></span></div></div>
     ${st.k==='ko'?`<p class="muted kotxt">Éliminé${E(id)} en semaine ${st.week}, à la place n°${st.place}.</p>`:''}
     <p class="fmini">Cote <b>${g.voters?winPct+' %':'—'}</b> · Moy. groupe <b>${avg?avg.toFixed(1).replace('.',','):'—'}</b> · Ton prono <b>${mi>-1?'n°'+(mi+1):'—'}</b></p>
     ${stat('Cote victoire',g.voters?winPct+' %':'—',winPct,true)}
     ${stat('Place moyenne du groupe',avg?avg.toFixed(1).replace('.',','):'—',avg?(N-avg)/(N-1)*100:0)}
     ${stat('Ton prono',mi>-1?'place n°'+(mi+1):'pas placé',mi>-1?(N-(mi+1))/(N-1)*100:0)}
     <p class="muted gnote">${g.complete?`Moyenne sur ${g.complete} classement${g.complete>1?'s':''} complet${g.complete>1?'s':''}.`:'Les stats du groupe apparaissent dès le premier classement complet.'}</p>
-    <div class="row">${acts}<a class="btn ghost" href="${tf1Url(id)}" target="_blank" rel="noopener">Sa page TF1 ↗</a></div>`;
+    <div class="row">${acts}</div>`;
 }
 function vSelect(){
   return`<div class="sel-wrap"><div class="card fighter">${fighter(S.sel)}</div>
