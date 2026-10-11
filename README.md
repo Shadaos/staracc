@@ -38,7 +38,7 @@ Une fois ces étapes faites, tes amis peuvent jouer.
 **Les joueurs**, dans l'onglet *Mon prono* (après avoir saisi pseudo et code) :
 - **Cette semaine** : ils choisissent qui sera éliminé (parmi les nominés) et qui sera immunisé. C'est enregistré dès qu'ils touchent un élève, et fermé automatiquement le dimanche à minuit.
 - **Anti-spoiler** : chaque joueur peut cocher « Je regarde le prime le dimanche ». Les résultats du samedi sont alors masqués pour lui jusqu'à dimanche minuit.
-- **Pronostic final** : ils classent les 17 élèves par glisser-déposer. C'est enregistré automatiquement, jusqu'à ce que tu verrouilles les classements.
+- **Pronostic final** : ils touchent les 17 élèves dans l'ordre (le 1er touché est le vainqueur), puis cochent « Je valide mon classement ». Chaque clic est enregistré automatiquement, jusqu'à ce que tu verrouilles les classements.
 
 **Toi**, dans l'*Espace organisateur* :
 - le mercredi, saisis les **nominés** ;
