@@ -134,6 +134,16 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 /* mon prono */
 .who-card{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
 .who-card .fld{display:flex;gap:8px;flex:1 1 260px;min-width:0}
+.gated .top{display:none}
+.gate{max-width:560px;margin:0 auto;padding-block:min(8vh,64px) 24px;display:flex;flex-direction:column;gap:18px;text-align:center}
+.gate .card{text-align:left}
+.gate-title{margin:0;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.1em .22em;font:400 clamp(36px,10vw,68px)/1 var(--f-display);letter-spacing:.03em;text-transform:uppercase}
+.gate-title em{font-style:normal;white-space:nowrap;background:linear-gradient(180deg,var(--gold2),var(--gold) 55%,#c98a12);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gate-title .star{width:.7em;height:.7em;flex:none;fill:var(--gold);filter:drop-shadow(0 0 12px rgba(248,201,74,.7))}
+.gate-sub{color:var(--muted);font-size:18px}
+.gate-faces{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;max-width:420px;margin:0 auto;width:100%}
+.gate-faces .av{width:100%;aspect-ratio:4/5;font-size:14px}
+.gate-faces .av:nth-child(n+10){transform:translateX(50%)}
 .login{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .lf{display:flex;flex-direction:column;gap:6px;flex:1 1 180px;min-width:0}
 .lf.code{flex:0 1 130px}
@@ -429,6 +439,22 @@ function whoCard(){
       <button class="btn" data-act="join"${busy}>${S.busy?'Connexion…':'Jouer'}</button></div>
     <p class="muted">Retiens bien ton code : sans lui, impossible de retrouver ton joueur sur un autre appareil.</p></div>`;
 }
+function needGate(){
+  if(S.conn==='noconfig'||S.conn==='err')return false;
+  if(S.conn!=='ok'||!S.authReady)return true;
+  if(!S.seasonExists)return false;
+  return !(registered()&&!S.anon);
+}
+function vGate(){
+  const loading=S.conn!=='ok'||!S.authReady;
+  const faces=ids.map(id=>av(id)).join('');
+  return`<section class="gate">
+    <div class="gate-faces" aria-hidden="true">${faces}</div>
+    <h1 class="gate-title">Pronos <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z"/></svg> <em>Star Ac’</em></h1>
+    <p class="gate-sub">Saison 14 · 17 élèves, un seul gagnant. Qui ira le plus loin ?</p>
+    ${loading?'<div class="card"><p class="muted">Connexion…</p></div>':whoCard()}
+  </section>`;
+}
 function loginSlug(name){return name.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
 function saveLine(){const s=S.save;if(!s)return'';
   if(s==='pending')return'<span class="save">Enregistrement…</span>';
@@ -556,9 +582,12 @@ function render(){
   const sc=document.querySelector('.bracket-scroll'),left=sc?sc.scrollLeft:0;
   const act=document.activeElement,keep=act&&['pname','pcode'].includes(act.id)?{id:act.id,s:act.selectionStart}:null;
   if(S.tab==='orga'&&!S.orga)S.tab='select';
-  renderHead();
+  const gate=needGate();
+  document.body.classList.toggle('gated',gate);
+  if(gate){$('#head').innerHTML='';$('#view').innerHTML=vGate();}
+  else{renderHead();
   const v={select:vSelect,bracket:vBracket,mine:vMine,board:vBoard,orga:vOrga}[S.tab]||vSelect;
-  $('#view').innerHTML=v();
+  $('#view').innerHTML=v();}
   const sc2=document.querySelector('.bracket-scroll');if(sc2)sc2.scrollLeft=left;
   if(keep){const i=document.getElementById(keep.id);if(i){i.focus();try{i.setSelectionRange(keep.s,keep.s);}catch(e){}}}
   initDrag();
@@ -699,7 +728,7 @@ async function initFirebase(){
     fs.onSnapshot(fs.collection(db,'picks'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&Number.isInteger(x.week))p[x.week+'_'+x.uid]={uid:x.uid,week:x.week,elim:C[x.elim]?x.elim:null,immune:C[x.immune]?x.immune:null};});S.picks=p;render();},fail('des choix'));
     let first=true;
     authM.onAuthStateChanged(auth,u=>{
-      S.uid=u?u.uid:null;S.anon=!!(u&&u.isAnonymous);
+      S.uid=u?u.uid:null;S.anon=!!(u&&u.isAnonymous);if(u)S.authReady=true;
       S.login=u&&u.email?u.email.split('@')[0]:'';
       S.meDirty=false;S.me={name:'',order:[]};syncMe();render();
       if(!u&&first){first=false;authM.signInAnonymously(auth).catch(e=>{S.conn='err';S.note='Connexion à la base de données impossible ('+errText(e)+'). Recharge la page.';render();});}
