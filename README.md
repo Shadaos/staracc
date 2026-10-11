@@ -32,7 +32,7 @@ Tant que l'étape 4 n'est pas faite, tes changements ne sont visibles que dans t
 
 ## Changer une photo
 
-Les portraits viennent du diaporama officiel publié par Puremédias. Félix n'y figure pas : il s'affiche donc avec son initiale.
+Les portraits viennent du diaporama officiel publié par Puremédias. Celui de Félix, absent du diaporama, est dans `photos/felix.jpg`.
 
 Pour ajouter ou remplacer une photo :
 1. Mets l'image dans le dépôt, par exemple `photos/felix.jpg`.
