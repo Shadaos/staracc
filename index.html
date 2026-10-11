@@ -144,6 +144,11 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .gate-faces{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;max-width:420px;margin:0 auto;width:100%}
 .gate-faces .av{width:100%;aspect-ratio:4/5;font-size:14px}
 .gate-faces .av:nth-child(n+10){transform:translateX(50%)}
+.spoil{border-left-color:var(--imm)}
+.linkbtn{background:none;border:0;padding:0;color:var(--gold2);font-weight:700;text-decoration:underline;cursor:pointer}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:15px;text-align:left}
+.check input{margin-top:3px;width:18px;height:18px;accent-color:var(--gold);flex:none}
+.spoilck{flex-basis:100%;color:var(--muted)}
 .login{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .lf{display:flex;flex-direction:column;gap:6px;flex:1 1 180px;min-width:0}
 .lf.code{flex:0 1 130px}
@@ -269,11 +274,11 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script type="module">
-import { firebaseConfig } from './firebase-config.js?v=6';
+import { firebaseConfig } from './firebase-config.js?v=7';
 
 /* ===================== Réglages ===================== */
 const LAUNCH = [2026, 9, 10];      // prime de lancement : samedi 10 octobre 2026 (mois 0-11)
-const LOCK_HOUR = 23, LOCK_MIN = 30; // fermeture des choix de la semaine : samedi 23h30 (heure de Paris)
+const LOCK_DAYS = 2;              // fermeture des choix de la semaine : dimanche à minuit = lundi 0h00 (heure de Paris), 2 jours après le samedi
 const SC = {exact:5, near1:3, near2:1, elim:3, immune:3, winner:10};
 const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
@@ -295,6 +300,11 @@ function normSeason(d){const s=d&&typeof d==='object'?d:{};
   const weeks={};if(s.weeks&&typeof s.weeks==='object')Object.keys(s.weeks).forEach(k=>{if(+k>=0){const w=s.weeks[k]||{};weeks[String(+k)]={immune:C[w.immune]?w.immune:null,nominees:cleanOrder(w.nominees),out:cleanOrder(w.out)};}});
   const locks={};if(s.locks&&typeof s.locks==='object')Object.keys(s.locks).forEach(k=>{const m=toMs(s.locks[k]);if(m)locks[k]=m;});
   return{rankingOpen:s.rankingOpen!==false,weeks,locks};}
+function maskSeason(s,now){
+  const v=JSON.parse(JSON.stringify(s));let hidden=0;
+  Object.keys(v.weeks).forEach(k=>{const w=v.weeks[k];if((w.out&&w.out.length||w.immune)&&now<(s.locks[k]||defaultLock(+k))){
+    if(w.out&&w.out.length)hidden++;w.out=[];w.immune=null;}});
+  v.locks=s.locks;return{v,hidden};}
 function weekKeys(s){return Object.keys(s.weeks).map(Number).filter(n=>n>0).sort((a,b)=>a-b);}
 function wk(s,n){const w=s.weeks[String(n)]||{};return{immune:C[w.immune]?w.immune:null,nominees:cleanOrder(w.nominees),out:cleanOrder(w.out)};}
 function outOrder(s){const o=[];weekKeys(s).forEach(n=>wk(s,n).out.forEach(id=>{if(!o.includes(id))o.push(id);}));return o;}
@@ -302,8 +312,8 @@ function curWeek(s){const ks=weekKeys(s);for(const n of ks){if(wk(s,n).out.lengt
 function places(s){const out=outOrder(s),P={};out.forEach((id,i)=>{P[id]=N-i;});const rem=ids.filter(id=>!out.includes(id));if(rem.length===1)P[rem[0]]=1;return P;}
 function winnerId(s){const out=outOrder(s);const rem=ids.filter(id=>!out.includes(id));return rem.length===1?rem[0]:null;}
 function parisOffset(y,m,d){const t=Date.UTC(y,m,d);return(t>=Date.UTC(2026,9,25)&&t<Date.UTC(2027,2,28))?1:2;}
-function defaultLock(n){const d=new Date(Date.UTC(LAUNCH[0],LAUNCH[1],LAUNCH[2]+7*n));const y=d.getUTCFullYear(),m=d.getUTCMonth(),day=d.getUTCDate();
-  return Date.UTC(y,m,day,LOCK_HOUR-parisOffset(y,m,day),LOCK_MIN);}
+function defaultLock(n){const d=new Date(Date.UTC(LAUNCH[0],LAUNCH[1],LAUNCH[2]+7*n+LOCK_DAYS));const y=d.getUTCFullYear(),m=d.getUTCMonth(),day=d.getUTCDate();
+  return Date.UTC(y,m,day,0-parisOffset(y,m,day),0);}
 function lockAt(s,n){return s.locks[String(n)]||defaultLock(n);}
 function weeklyScore(uid,s,picks){let elim=0,imm=0;
   Object.values(picks).forEach(p=>{if(p.uid!==uid)return;const w=wk(s,p.week);
@@ -326,14 +336,17 @@ function groupStats(players){
 function consensus(g){if(!g.complete)return[];return ids.slice().sort((a,b)=>g.stats[a].sum/g.stats[a].n-g.stats[b].sum/g.stats[b].n||C[a].name.localeCompare(C[b].name,'fr'));}
 function nextDayShort(dow){const d=new Date();const diff=(dow-d.getDay()+7)%7;if(diff===0)return'aujourd’hui';d.setDate(d.getDate()+diff);return d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});}
 function nextDay(dow){const d=new Date();const diff=(dow-d.getDay()+7)%7;if(diff===0)return'aujourd’hui';d.setDate(d.getDate()+diff);return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});}
-function fmtLock(ms){return new Date(ms).toLocaleString('fr-FR',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).replace(':','h');}
+function fmtLock(ms){const p=new Date(ms).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'});
+  if(p==='00:00')return new Date(ms-60000).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/Paris'})+' à minuit';
+  return fmtLockFull(ms);}
+function fmtLockFull(ms){return new Date(ms).toLocaleString('fr-FR',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).replace(':','h');}
 function fmtLeft(ms){const t=Math.max(0,ms-Date.now()),m=Math.floor(t/60000),d=Math.floor(m/1440),h=Math.floor(m%1440/60),mn=m%60;
   return d?`${d} j ${h} h`:h?`${h} h ${String(mn).padStart(2,'0')}`:`${mn} min`;}
 
 /* ===================== état ===================== */
 const ls={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
 const S={tab:ls.get('sa14-tab')||'select',sub:ls.get('sa14-sub')||'week',sel:ids[0],mode:'reel',focus:null,
-  conn:'loading',seasonExists:false,season:normSeason(null),players:{},picks:{},uid:null,
+  conn:'loading',seasonExists:false,season:normSeason(null),real:normSeason(null),noSpoil:ls.get('sa14-nospoil')==='1',players:{},picks:{},uid:null,
   me:{name:'',order:[]},meDirty:false,save:'',nameEdit:false,
   form:{name:null,code:''},anon:true,login:'',busy:false,dragging:false,orga:location.hash==='#orga'||ls.get('sa14-orga')==='1',note:'',pendingOut:null,delId:null,badImg:new Set()};
 let fb=null;
@@ -370,12 +383,13 @@ function renderHead(){
   let banner=S.note;
   if(!banner&&S.conn==='noconfig')banner='Le site n’est pas encore relié à sa base de données : les pronos ne peuvent pas être enregistrés pour l’instant.';
   else if(!banner&&S.conn==='ok'&&!S.seasonExists)banner='La saison n’est pas encore ouverte par l’organisateur.';
+  const spoil=S.noSpoil&&S.masked&&S.tab!=='orga'?`<p class="note spoil">Anti-spoiler activé : les résultats du dernier prime sont masqués jusqu’à dimanche minuit. <button class="linkbtn" data-act="spoil">Tout afficher</button></p>`:'';
   $('#head').innerHTML=`
     <div class="brand"><h1>Pronos <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z"/></svg><em>Star Ac’</em></h1>
       <span class="meta">Saison 14 · ${win?'Vainqueur : '+esc(C[win].name):alive+' en lice · semaine '+cur} · ${np} joueur${np>1?'s':''}</span></div>
     <div class="when"><span class="pill">Nominations <b>${esc(nextDayShort(3))}</b></span><span class="pill">Prime <b>${esc(nextDayShort(6))}</b></span></div>
     <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-act="tab" data-id="${k}">${l}</button>`).join('')}</nav>
-    ${banner?`<p class="note">${esc(banner)}</p>`:''}`;
+    ${banner?`<p class="note">${esc(banner)}</p>`:''}${spoil}`;
 }
 function tile(id){
   const c=C[id],st=status(id),lab=st.k==='ko'?'KO · n°'+st.place:lbl(st.k,id);
@@ -384,6 +398,7 @@ function tile(id){
 function stat(label,val,pct,gold){
   return`<div class="stat"><div class="lbl"><span>${label}</span><span>${val}</span></div><div class="hp${gold?' gold':''}"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div></div>`;
 }
+function viewSeason(){if(!S.noSpoil){S.masked=0;return S.real;}const r=maskSeason(S.real,Date.now());S.masked=r.hidden;return r.v;}
 function weekOpen(n){return Date.now()<lockAt(S.season,n);}
 function myPick(n){return S.uid?S.picks[n+'_'+S.uid]||null:null;}
 function fighter(id){
@@ -465,7 +480,8 @@ function whoCard(){
       <div class="who-card"><div class="fld"><input type="text" id="pname" maxlength="40" autocomplete="nickname" value="${esc(S.players[S.uid].name)}" aria-label="Pseudo affiché"><button class="btn" data-act="saveName">Valider</button></div></div>
       <p class="muted">Pour te reconnecter, garde l’identifiant <b>${esc(S.login||'')}</b> et ton code.</p></div>`;
     return`<div class="card who-card"><span>Tu joues en tant que <b>${esc(S.players[S.uid].name)}</b>${S.login?` <span class="muted">· identifiant ${esc(S.login)}</span>`:''}</span>
-      <span class="row"><button class="btn ghost" data-act="editName">Changer de pseudo</button><button class="btn ghost" data-act="logout">Changer de joueur</button></span></div>`;
+      <span class="row"><button class="btn ghost" data-act="editName">Changer de pseudo</button><button class="btn ghost" data-act="logout">Changer de joueur</button></span>
+      <label class="check spoilck"><input type="checkbox" id="nospoil"${S.noSpoil?' checked':''}> Je regarde le prime le dimanche : masquer les résultats du samedi jusqu’à dimanche minuit</label></div>`;
   }
   const legacy=registered()&&S.anon,pre=S.form.name!=null?S.form.name:(legacy?S.players[S.uid].name:'');
   return`<div class="card"><h3>${legacy?'Protège ton joueur avec un code':'Pseudo et code pour jouer'}</h3>
@@ -581,14 +597,14 @@ function vBoard(){
 function vOrga(){
   if(S.conn==='noconfig')return`<h2>Espace organisateur</h2><div class="card"><h3>Relier le site à Firebase</h3>
     <p>Le fichier <code>firebase-config.js</code> du dépôt est encore vide. Suis les étapes du README, puis colle la configuration Firebase dans ce fichier.</p></div>`;
-  const s=S.season,cur=curWeek(s),w=wk(s,cur),prevImm=wk(s,cur-1).immune,out=outOrder(s),alive=ids.filter(id=>!out.includes(id)),win=winnerId(s);
+  const s=S.real,cur=curWeek(s),w=wk(s,cur),prevImm=wk(s,cur-1).immune,out=outOrder(s),alive=ids.filter(id=>!out.includes(id)),win=winnerId(s);
   const pickRow=(list,on,act,dis)=>`<div class="pool">${list.map(id=>`<button class="chip${on(id)?' focus':''}" data-act="${act}" data-id="${id}" aria-pressed="${on(id)}"${dis&&dis(id)?' disabled':''}>${av(id)}<span class="nm">${esc(C[id].name)}</span></button>`).join('')}</div>`;
   const idCard=`<div class="card"><h3>Ton identifiant</h3>
     <p class="mono" id="myuid">${esc(S.uid||'connexion…')}</p>
     <div class="row"><button class="btn ghost" data-act="copyUid"${S.uid?'':' disabled'}>Copier</button></div>
     <p class="muted">À coller une seule fois dans les règles Firestore (voir README). Seul ce navigateur peut ensuite modifier les résultats.</p></div>`;
   if(!S.seasonExists)return`<h2>Espace organisateur</h2>${idCard}<div class="card"><h3>Ouvrir la saison</h3>
-    <p class="muted">Crée les résultats de la saison et les heures de fermeture des semaines (chaque samedi à ${LOCK_HOUR}h${String(LOCK_MIN).padStart(2,'0')}).</p>
+    <p class="muted">Crée les résultats de la saison et les heures de fermeture des semaines (chaque dimanche à minuit).</p>
     <div class="row"><button class="btn" data-act="initSeason">Ouvrir la saison</button></div></div>`;
   let week;
   if(win)week=`<div class="card"><h3>Saison terminée</h3><p>Vainqueur : ${esc(C[win].name)}.</p></div>`;
@@ -601,6 +617,9 @@ function vOrga(){
       <span class="sub">Prime de samedi · éliminé</span>${pickRow(cand,id=>S.pendingOut===id,'pendOut',id=>w.immune===id)}
       <div class="row"><button class="btn danger" data-act="confirmOut"${S.pendingOut?'':' disabled'}>${S.pendingOut?'Confirmer le KO de '+esc(C[S.pendingOut].name):'Choisis l’éliminé'}</button></div>
       <p class="muted">Après le KO, la semaine ${cur+1} s’ouvre. Chaque clic est enregistré tout de suite.</p></div>`;}
+  const stale=Object.keys(s.locks).some(k=>+k>=cur&&s.locks[k]!==defaultLock(+k));
+  if(stale)week=`<div class="card"><h3>Heures de fermeture à mettre à jour</h3><p class="muted">Les heures enregistrées ne correspondent plus au réglage actuel (dimanche à minuit). Semaine ${cur} : ${esc(fmtLockFull(lockAt(s,cur)))}.</p>
+    <div class="row"><button class="btn" data-act="fixLocks">Passer à dimanche minuit</button></div></div>`+week;
   const players=Object.entries(S.players).sort((a,b)=>a[1].name.localeCompare(b[1].name,'fr')).map(([uid,p])=>`<div class="pl"><span class="who"><b>${esc(p.name)}</b><small>${cleanOrder(p.order).length}/${N} placés · ${Object.values(S.picks).filter(x=>x.uid===uid).length} semaine(s) jouée(s)</small></span>
     ${S.delId===uid?`<span class="row"><button class="btn danger" data-act="delYes" data-id="${uid}">Supprimer</button><button class="btn ghost" data-act="delNo">Garder</button></span>`:`<button class="btn ghost" data-act="del" data-id="${uid}">Retirer</button>`}</div>`).join('');
   return`<h2>Espace organisateur</h2>${week}
@@ -703,10 +722,10 @@ function seasonDoc(s){
 }
 async function saveSeason(mut){
   if(!fb)return;
-  const next=JSON.parse(JSON.stringify(S.season));mut(next);
-  const prev=S.season;S.season=normSeason(next);render();
+  const next=JSON.parse(JSON.stringify(S.real));mut(next);
+  const prev=S.real;S.real=normSeason(next);S.season=viewSeason();render();
   try{await fb.fs.setDoc(fb.fs.doc(fb.db,'season','main'),seasonDoc(next));}
-  catch(e){S.season=prev;render();toast(errText(e)==='refusé'?'Refusé : ton identifiant n’est pas encore dans les règles Firestore.':'Non enregistré ('+errText(e)+').');}
+  catch(e){S.real=prev;S.season=viewSeason();render();toast(errText(e)==='refusé'?'Refusé : ton identifiant n’est pas encore dans les règles Firestore.':'Non enregistré ('+errText(e)+').');}
 }
 function editWeek(n,fn){saveSeason(s=>{const k=String(n);s.weeks[k]=Object.assign({immune:null,nominees:[],out:[]},s.weeks[k]);fn(s.weeks[k]);});}
 
@@ -714,13 +733,15 @@ function editWeek(n,fn){saveSeason(s=>{const k=String(n);s.weeks[k]=Object.assig
 function enterOrga(){S.orga=true;ls.set('sa14-orga','1');S.tab='orga';ls.set('sa14-tab','orga');
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0);}
 window.addEventListener('hashchange',()=>{if(location.hash==='#orga')enterOrga();});
+function setNoSpoil(v){S.noSpoil=v;ls.set('sa14-nospoil',v?'1':'0');S.season=viewSeason();render();}
+document.addEventListener('change',e=>{if(e.target.id==='nospoil')setNoSpoil(e.target.checked);});
 document.addEventListener('input',e=>{if(e.target.id==='pname'&&$('#pcode'))S.form.name=e.target.value;else if(e.target.id==='pcode')S.form.code=e.target.value.replace(/\D/g,'');});
 document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;
   if(e.target.id==='pcode'||(e.target.id==='pname'&&$('#pcode'))){e.preventDefault();join();}
   else if(e.target.id==='pname'){e.preventDefault();saveName();}});
 document.addEventListener('click',e=>{
   const t=e.target.closest('[data-act]');if(!t||t.disabled)return;
-  const a=t.dataset.act,id=t.dataset.id,o=cleanOrder(S.me.order),s=S.season;
+  const a=t.dataset.act,id=t.dataset.id,o=cleanOrder(S.me.order),s=S.tab==='orga'?S.real:S.season;
   const editFinal=()=>{if(!registered()){S.tab='mine';render();toast('Choisis d’abord ton pseudo.');return false;}if(!s.rankingOpen){toast('Les classements finaux sont verrouillés.');return false;}return true;};
   if(a==='tab'){S.tab=id;S.pendingOut=null;ls.set('sa14-tab',id);render();window.scrollTo(0,0);}
   else if(a==='sub'){S.sub=id;ls.set('sa14-sub',id);render();}
@@ -730,6 +751,7 @@ document.addEventListener('click',e=>{
   else if(a==='editName'){S.nameEdit=true;render();const i=$('#pname');if(i)i.focus();}
   else if(a==='saveName')saveName();
   else if(a==='join')join();
+  else if(a==='spoil')setNoSpoil(false);
   else if(a==='logout')logout();
   else if(a==='pick')savePick(t.dataset.f,id);
   else if(a==='add'){if(editFinal()){S.me.order=o.concat(id);queueMe();}}
@@ -737,6 +759,7 @@ document.addEventListener('click',e=>{
   else if(a==='up'||a==='down'){if(!editFinal())return;const i=o.indexOf(id),j=a==='up'?i-1:i+1;if(i>-1&&j>=0&&j<o.length){[o[i],o[j]]=[o[j],o[i]];S.me.order=o;queueMe();}}
   else if(a==='winner'){if(editFinal()){S.me.order=[id].concat(o.filter(x=>x!==id));queueMe();toast(C[id].name+' est ton vainqueur.');}}
   else if(a==='copyUid'){try{navigator.clipboard.writeText(S.uid).then(()=>toast('Identifiant copié.'),()=>toast('Sélectionne l’identifiant et copie-le à la main.'));}catch(err){toast('Sélectionne l’identifiant et copie-le à la main.');}}
+  else if(a==='fixLocks'){const cur=curWeek(S.real);saveSeason(x=>{for(let n=cur;n<=25;n++)x.locks[String(n)]=defaultLock(n);});toast('Heures de fermeture mises à jour.');}
   else if(a==='initSeason'){const locks={};for(let n=1;n<=25;n++)locks[String(n)]=defaultLock(n);
     saveSeason(x=>{x.rankingOpen=true;x.weeks={'1':{immune:null,nominees:[],out:[]}};x.locks=locks;});}
   else if(a==='setPrevImm'){const n=curWeek(s)-1;editWeek(n,w=>{w.immune=w.immune===id?null:id;});}
@@ -753,7 +776,7 @@ document.addEventListener('click',e=>{
   else if(a==='quitOrga'){S.orga=false;ls.del('sa14-orga');S.tab='select';ls.set('sa14-tab','select');render();}
 });
 $('#orga-link').addEventListener('click',e=>{e.preventDefault();enterOrga();});
-setInterval(()=>{if(S.tab==='mine'&&S.sub==='week'&&!document.activeElement?.matches('input'))render();},60000);
+setInterval(()=>{const before=S.masked;S.season=viewSeason();if((before!==S.masked||(S.tab==='mine'&&S.sub==='week'))&&!document.activeElement?.matches('input'))render();},60000);
 
 /* ===================== connexion Firebase ===================== */
 async function initFirebase(){
@@ -763,7 +786,7 @@ async function initFirebase(){
     const app=appM.initializeApp(firebaseConfig),auth=authM.getAuth(app),db=fs.getFirestore(app);
     fb={db,fs,auth,authM};
     const fail=what=>err=>{S.note=`Lecture ${what} impossible (${errText(err)}).`;render();};
-    fs.onSnapshot(fs.doc(db,'season','main'),snap=>{S.seasonExists=snap.exists();S.season=normSeason(snap.exists()?snap.data():null);S.conn='ok';render();},fail('de la saison'));
+    fs.onSnapshot(fs.doc(db,'season','main'),snap=>{S.seasonExists=snap.exists();S.real=normSeason(snap.exists()?snap.data():null);S.season=viewSeason();S.conn='ok';render();},fail('de la saison'));
     fs.onSnapshot(fs.collection(db,'players'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.name==='string'&&x.name.trim())p[d.id]={name:x.name.trim().slice(0,40),order:cleanOrder(x.order)};});S.players=p;syncMe();render();},fail('des joueurs'));
     fs.onSnapshot(fs.collection(db,'picks'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&Number.isInteger(x.week))p[x.week+'_'+x.uid]={uid:x.uid,week:x.week,elim:C[x.elim]?x.elim:null,immune:C[x.immune]?x.immune:null};});S.picks=p;render();},fail('des choix'));
     let first=true;

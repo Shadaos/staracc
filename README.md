@@ -36,7 +36,8 @@ Une fois ces étapes faites, tes amis peuvent jouer.
 ## Pendant la saison
 
 **Les joueurs**, dans l'onglet *Mon prono* (après avoir saisi pseudo et code) :
-- **Cette semaine** : ils choisissent qui sera éliminé (parmi les nominés) et qui sera immunisé. C'est enregistré dès qu'ils touchent un élève, et fermé automatiquement le samedi à 23h30.
+- **Cette semaine** : ils choisissent qui sera éliminé (parmi les nominés) et qui sera immunisé. C'est enregistré dès qu'ils touchent un élève, et fermé automatiquement le dimanche à minuit.
+- **Anti-spoiler** : chaque joueur peut cocher « Je regarde le prime le dimanche ». Les résultats du samedi sont alors masqués pour lui jusqu'à dimanche minuit.
 - **Pronostic final** : ils classent les 17 élèves par glisser-déposer. C'est enregistré automatiquement, jusqu'à ce que tu verrouilles les classements.
 
 **Toi**, dans l'*Espace organisateur* :
@@ -48,10 +49,12 @@ Chaque clic est enregistré tout de suite et visible par tout le monde.
 
 ## Heure de fermeture des choix de la semaine
 
-Les choix de la semaine ferment chaque samedi à **23h30**, heure de Paris. Attention : si l'éliminé ou l'immunisé est annoncé avant 23h30, un joueur peut encore changer son choix en connaissant le résultat.
+Les choix de la semaine ferment chaque **dimanche à minuit**, heure de Paris, pour laisser voter ceux qui regardent le prime en replay.
+
+Attention : entre la fin du prime du samedi et dimanche minuit, un joueur qui connaît déjà le résultat peut encore voter. Dès que tu saisis l'éliminé, le site passe à la semaine suivante et n'affiche plus le vote de la semaine terminée. Ça limite les abus, sans les empêcher complètement, puisque l'anti-spoiler garde la semaine ouverte pour ceux qui l'activent. Saisis donc l'éliminé et l'immunisé dès la fin du prime.
 
 Pour changer l'heure :
-1. Dans `index.html`, modifie `LOCK_HOUR` et `LOCK_MIN`.
+1. Dans `index.html`, modifie `LOCK_DAYS` (nombre de jours après le samedi ; la fermeture tombe à 0h00 ce jour-là).
 2. Les heures déjà enregistrées dans Firestore (document `season/main`, champ `locks`) ne changent pas toutes seules : modifie-les dans la console Firebase.
 
 Si un prime tombe un autre jour, modifie aussi l'heure de la semaine concernée dans `locks`.
