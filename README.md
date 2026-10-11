@@ -2,45 +2,59 @@
 
 Site de pronostics entre amis pour la Star Academy 2026. Site non officiel.
 
-## Contenu du dossier
+En ligne : https://shadaos.github.io/staracc/
 
-- `index.html` : le site complet
-- `data.json` : les résultats et les pronos de tout le monde. C'est le seul fichier à modifier pendant la saison.
+## Comment ça marche
 
-## Mettre le site en ligne avec GitHub Pages (une seule fois)
+- Le site est hébergé par **GitHub Pages**.
+- Les pronos sont enregistrés dans **Firebase Firestore**, une base de données gratuite de Google.
+- Chaque joueur est reconnu automatiquement par son navigateur (connexion anonyme), sans compte ni mot de passe. Il doit donc toujours jouer depuis le même téléphone ou ordinateur.
 
-1. Sur github.com, clique sur **New repository**. Nomme-le par exemple `pronos-star-ac`, choisis **Public**, puis clique sur **Create repository**.
-2. Sur la page du dépôt, clique sur **uploading an existing file**. Glisse `index.html`, `data.json` et `README.md`, puis clique sur **Commit changes**.
-3. Va dans **Settings → Pages**. Sous *Branch*, choisis `main` et `/ (root)`, puis clique sur **Save**.
-4. Une à deux minutes plus tard, le site est en ligne à l'adresse `https://TON-PSEUDO.github.io/pronos-star-ac/`. Envoie ce lien à tes amis.
+## Contenu du dépôt
+
+| Fichier | Rôle |
+|---|---|
+| `index.html` | Le site complet |
+| `firebase-config.js` | La configuration de ton projet Firebase |
+| `firestore.rules` | Les règles de sécurité à coller dans Firebase |
+| `photos/` | Les portraits des 17 élèves |
+
+## Brancher Firebase (une seule fois, environ 10 minutes)
+
+1. Va sur https://console.firebase.google.com et connecte-toi avec un compte Google. Clique sur **Créer un projet**, nomme-le (par exemple `pronos-star-ac`), puis désactive Google Analytics.
+2. Sur l'accueil du projet, clique sur l'icône **Web** (`</>`). Nomme l'application, puis clique sur **Enregistrer l'application**. Ne coche pas « Firebase Hosting ». Firebase t'affiche un bloc `const firebaseConfig = { ... }` : copie-le.
+3. Colle ce bloc dans `firebase-config.js` à la place de `null` (ou envoie-le à Claude, qui le fera).
+4. Dans le menu de gauche, va dans **Build → Authentication → Commencer**, onglet **Sign-in method**. Active **Anonyme**, puis clique sur **Enregistrer**.
+5. Toujours dans **Authentication**, ouvre **Paramètres → Domaines autorisés**, clique sur **Ajouter un domaine** et ajoute `shadaos.github.io`.
+6. Va dans **Build → Firestore Database → Créer une base de données**. Choisis un emplacement en Europe (par exemple `eur3`), puis le **mode production**.
+7. Ouvre le site, puis clique sur **Espace organisateur** tout en bas. Copie **Ton identifiant**.
+8. Dans **Firestore → Règles**, colle tout le contenu de `firestore.rules` et remplace `COLLE_TON_IDENTIFIANT_ICI` par ton identifiant. Clique sur **Publier**.
+9. Reviens sur le site, dans l'Espace organisateur, et clique sur **Ouvrir la saison**.
+
+Une fois ces étapes faites, tes amis peuvent jouer.
 
 ## Pendant la saison
 
 **Les joueurs**, dans l'onglet *Mon prono* :
-- ils classent les 17 élèves et, une fois les nominés connus, choisissent qui part samedi ;
-- ils écrivent leur prénom puis touchent **Envoyer** (ou **Copier**) et t'envoient le message.
+- **Cette semaine** : ils choisissent qui sera éliminé (parmi les nominés) et qui sera immunisé. C'est enregistré dès qu'ils touchent un élève, et fermé automatiquement le samedi à 23h30.
+- **Pronostic final** : ils classent les 17 élèves. C'est enregistré automatiquement, jusqu'à ce que tu verrouilles les classements.
 
-Leur brouillon reste enregistré dans leur navigateur.
+**Toi**, dans l'*Espace organisateur* :
+- le mercredi, saisis les **nominés** ;
+- le samedi, saisis l'**immunisé** désigné au prime, puis l'**éliminé**, et confirme le KO ;
+- quand tu le décides, clique sur **Verrouiller les classements finaux**.
 
-**Toi**, l'organisateur :
-1. Ouvre le site et clique sur **Espace organisateur** tout en bas de la page (ou ajoute `#orga` à la fin de l'adresse).
-2. Colle les messages reçus, puis saisis l'immunisé (samedi), les nominés (mercredi) et l'éliminé (samedi).
-3. Clique sur **Mettre le site à jour**, puis copie le contenu proposé.
-4. Sur GitHub, ouvre `data.json`, clique sur le crayon, remplace tout le contenu, puis clique sur **Commit changes**.
+Chaque clic est enregistré tout de suite et visible par tout le monde.
 
-Tant que l'étape 4 n'est pas faite, tes changements ne sont visibles que dans ton navigateur.
+## Heure de fermeture des choix de la semaine
 
-## Changer une photo
+Les choix de la semaine ferment chaque samedi à **23h30**, heure de Paris. Attention : si l'éliminé ou l'immunisé est annoncé avant 23h30, un joueur peut encore changer son choix en connaissant le résultat.
 
-Les portraits officiels sont dans le dossier `photos/` (un fichier par élève, par exemple `photos/amel.jpg`). Pour en changer un, remplace simplement le fichier en gardant le même nom.
+Pour changer l'heure :
+1. Dans `index.html`, modifie `LOCK_HOUR` et `LOCK_MIN`.
+2. Les heures déjà enregistrées dans Firestore (document `season/main`, champ `locks`) ne changent pas toutes seules : modifie-les dans la console Firebase.
 
-Tu peux aussi pointer vers une autre image depuis `data.json` :
-
-```json
-"photos": { "felix": "photos/felix-2.jpg" }
-```
-
-Les identifiants des élèves sont leur prénom en minuscules et sans accent : `amel`, `antoine`, `brieuc`, `cameron`, `elija`, `felix`, `isabella`, `khalil`, `kylian`, `leeloo`, `maud`, `melina`, `morgan`, `noemie`, `tracy`, `ydriss`, `zoe`.
+Si un prime tombe un autre jour, modifie aussi l'heure de la semaine concernée dans `locks`.
 
 ## Barème
 
@@ -50,6 +64,11 @@ Les identifiants des élèves sont leur prénom en minuscules et sans accent : `
 | Élève à une place d'écart | 3 |
 | Élève à deux places d'écart | 1 |
 | Éliminé de la semaine trouvé | 3 |
+| Immunisé de la semaine trouvé | 3 |
 | Vainqueur trouvé | +10 |
 
 Les points du classement final ne comptent que si le classement est complet (17 élèves).
+
+## Changer une photo
+
+Remplace le fichier dans `photos/` en gardant le même nom. Le nom du fichier est le prénom de l'élève en minuscules et sans accent : `amel`, `antoine`, `brieuc`, `cameron`, `elija`, `felix`, `isabella`, `khalil`, `kylian`, `leeloo`, `maud`, `melina`, `morgan`, `noemie`, `tracy`, `ydriss`, `zoe`.
