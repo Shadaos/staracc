@@ -13,4 +13,11 @@
 //
 // Ces valeurs ne sont pas secrètes : la sécurité vient des règles Firestore (firestore.rules).
 
-export const firebaseConfig = null;
+export const firebaseConfig = {
+  apiKey: "AIzaSyA2QVPmCZ3lsKU1NBHtshBLatM9kyv-LX8",
+  authDomain: "pronos-star-ac.firebaseapp.com",
+  projectId: "pronos-star-ac",
+  storageBucket: "pronos-star-ac.firebasestorage.app",
+  messagingSenderId: "403260404385",
+  appId: "1:403260404385:web:e86eb3752d2cb3527d76e0"
+};
