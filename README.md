@@ -17,7 +17,7 @@ En ligne : https://shadaos.github.io/staracc/
 | `index.html` | Le site complet |
 | `firebase-config.js` | La configuration de ton projet Firebase |
 | `firestore.rules` | Les règles de sécurité à coller dans Firebase |
-| `photos/` | Les portraits des 17 élèves |
+| `photos/` | Les portraits officiels TF1 des 17 élèves (300 px de large) |
 
 ## Brancher Firebase (une seule fois, environ 10 minutes)
 
