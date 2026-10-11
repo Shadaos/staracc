@@ -149,6 +149,11 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .check{display:flex;gap:8px;align-items:flex-start;font-size:15px;text-align:left}
 .check input{margin-top:3px;width:18px;height:18px;accent-color:var(--gold);flex:none}
 .spoilck{flex-basis:100%;color:var(--muted)}
+.plink{width:100%;text-align:left;cursor:pointer;font:inherit;color:inherit;grid-template-columns:40px minmax(0,1fr) auto 18px}
+.plink:hover{border-color:var(--gold)}
+.chev{color:var(--muted);font-size:22px}
+.ptsbig{font:400 34px/1 var(--f-display);color:var(--gold2)}
+.ptsbig small{font:600 14px var(--f-body);color:var(--muted)}
 .login{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .lf{display:flex;flex-direction:column;gap:6px;flex:1 1 180px;min-width:0}
 .lf.code{flex:0 1 130px}
@@ -580,19 +585,42 @@ function vMine(){
 }
 
 function vBoard(){
+  if(S.viewPlayer&&S.players[S.viewPlayer])return vPlayer(S.viewPlayer);
   const s=S.season,rows=Object.entries(S.players).map(([uid,p])=>({uid,p,sc:scoreOf(uid,p,s,S.picks),n:cleanOrder(p.order).length}));
   rows.sort((a,b)=>b.sc.total-a.sc.total||b.n-a.n||a.p.name.localeCompare(b.p.name,'fr'));
   let pos=0,prev=null;
   const list=rows.map((r,i)=>{if(r.sc.total!==prev){pos=i+1;prev=r.sc.total;}
     const o=cleanOrder(r.p.order),w=o[0]?' · vainqueur : '+esc(C[o[0]].name):'';
-    return`<div class="pl${r.uid===S.uid?' me':''}"><span class="pos">${pos}</span><span class="who"><b>${esc(r.p.name)}${r.uid===S.uid?' (toi)':''}</b><small>Final ${r.sc.rank} · Hebdo ${r.sc.weekly} · Bonus ${r.sc.bonus} · ${r.n}/${N} placés${w}</small></span><span class="pts">${r.sc.total}<small>pts</small></span></div>`;}).join('');
-  return`<h2>Classement des joueurs</h2>
+    return`<button class="pl plink${r.uid===S.uid?' me':''}" data-act="player" data-id="${r.uid}" aria-label="Voir les pronostics de ${esc(r.p.name)}"><span class="pos">${pos}</span><span class="who"><b>${esc(r.p.name)}${r.uid===S.uid?' (toi)':''}</b><small>Final ${r.sc.rank} · Hebdo ${r.sc.weekly} · Bonus ${r.sc.bonus} · ${r.n}/${N} placés${w}</small></span><span class="pts">${r.sc.total}<small>pts</small></span><span class="chev" aria-hidden="true">›</span></button>`;}).join('');
+  return`<h2>Classement des joueurs</h2><p class="muted">Touche un joueur pour voir ses pronostics.</p>
     <div class="board">${list||'<p class="empty">Aucun joueur pour l’instant. Va dans Mon prono pour être le premier.</p>'}</div>
     <div class="card"><h3>Barème</h3><ul class="rules">
       <li>Classement final : <b>${SC.exact} pts</b> si l’élève est à sa place exacte, <b>${SC.near1}</b> à une place d’écart, <b>${SC.near2}</b> à deux places.</li>
       <li>Chaque semaine : <b>${SC.elim} pts</b> pour l’éliminé trouvé, <b>${SC.immune} pts</b> pour l’immunisé trouvé.</li>
       <li>Vainqueur trouvé dans le classement final : <b>+${SC.winner} pts</b> de bonus.</li>
       <li>Les points du classement final ne comptent que pour un classement complet (${N} élèves).</li></ul></div>`;
+}
+
+function vPlayer(uid){
+  const s=S.season,p=S.players[uid],sc=scoreOf(uid,p,s,S.picks),me=uid===S.uid,o=cleanOrder(p.order),P=places(s),cur=curWeek(s),win=winnerId(s);
+  // semaines
+  const last=win?Math.max(0,...weekKeys(s)):cur;
+  const weeks=[];for(let n=last;n>=1;n--)weeks.push(n);
+  const res=(mine,real,done)=>!mine?'<span class="muted">rien</span>':`${esc(C[mine].name)} ${done&&real?(mine===real||(Array.isArray(real)&&real.includes(mine))?`<b class="r-ok">+${SC.elim}</b>`:'<b class="r-bad">✗</b>'):''}`;
+  const wrows=weeks.map(n=>{const w=wk(s,n),pk=S.picks[n+'_'+uid]||{},open=Date.now()<lockAt(s,n),hide=open&&!me;
+    if(hide)return`<div><b>S${n}</b><span class="muted">Choix cachés jusqu’au ${esc(fmtLock(lockAt(s,n)))}${pk.elim||pk.immune?' (déjà votés)':''}</span></div>`;
+    const done=w.out.length>0;
+    return`<div><b>S${n}</b><span><b>Éliminé</b> : ${res(pk.elim,w.out,done)}${done?` <span class="muted">(réel : ${esc(C[w.out[0]].name)})</span>`:''}</span>
+      <span><b>Immunisé</b> : ${res(pk.immune,w.immune,!!w.immune)}${w.immune?` <span class="muted">(réel : ${esc(C[w.immune].name)})</span>`:''}</span></div>`;}).join('');
+  // classement final
+  const cards=o.map((id,i)=>{const a=P[id];let pts='';
+    if(a!=null&&o.length===N){const d=Math.abs(a-(i+1));const v=d===0?SC.exact+(a===1?SC.winner:0):d===1?SC.near1:d===2?SC.near2:0;pts=v?`<b class="r-ok">+${v}</b>`:'<b class="r-bad">0</b>';}
+    return`<div class="pcard${i===0?' first':''}"><span class="num">${i+1}</span>${av(id)}<b>${esc(C[id].name)}</b><small>${a!=null?'réel n°'+a+' ':''}${pts}</small></div>`;}).join('');
+  return`<div class="row"><button class="btn ghost" data-act="player" data-id="">‹ Classement</button></div>
+    <div class="card"><div class="wk-head"><h2>${esc(p.name)}${me?' (toi)':''}</h2><span class="ptsbig">${sc.total}<small> pts</small></span></div>
+      <p class="muted">Final ${sc.rank} · Hebdo ${sc.weekly} · Bonus ${sc.bonus}</p></div>
+    <div class="card"><h3>Choix de la semaine</h3><div class="hist">${wrows||'<p class="empty">Pas encore de semaine.</p>'}</div></div>
+    <div class="card"><h3>Pronostic final · ${o.length}/${N}</h3>${cards?`<div class="cards">${cards}</div>`:'<p class="empty">Pas encore de classement.</p>'}</div>`;
 }
 
 /* ---------- organisateur ---------- */
@@ -745,7 +773,7 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('[data-act]');if(!t||t.disabled)return;
   const a=t.dataset.act,id=t.dataset.id,o=cleanOrder(S.me.order),s=S.tab==='orga'?S.real:S.season;
   const editFinal=()=>{if(!registered()){S.tab='mine';render();toast('Choisis d’abord ton pseudo.');return false;}if(!s.rankingOpen){toast('Les classements finaux sont verrouillés.');return false;}return true;};
-  if(a==='tab'){S.tab=id;S.pendingOut=null;ls.set('sa14-tab',id);render();window.scrollTo(0,0);}
+  if(a==='tab'){S.viewPlayer=null;S.tab=id;S.pendingOut=null;ls.set('sa14-tab',id);render();window.scrollTo(0,0);}
   else if(a==='sub'){S.sub=id;ls.set('sa14-sub',id);render();}
   else if(a==='sel'){S.sel=id;render();}
   else if(a==='mode'){S.mode=id;render();}
@@ -753,6 +781,7 @@ document.addEventListener('click',e=>{
   else if(a==='editName'){S.nameEdit=true;render();const i=$('#pname');if(i)i.focus();}
   else if(a==='saveName')saveName();
   else if(a==='join')join();
+  else if(a==='player'){S.viewPlayer=id||null;render();window.scrollTo(0,0);}
   else if(a==='spoil')setNoSpoil(false);
   else if(a==='logout')logout();
   else if(a==='pick')savePick(t.dataset.f,id);
