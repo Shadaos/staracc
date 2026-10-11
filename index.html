@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pronos Star Academy</title>
+<meta name="description" content="Pronostics entre amis pour la Star Academy saison 14 : qui ira le plus loin ?">
+<meta name="theme-color" content="#100e1c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: sticky arcade header with five screens (character select, funnel bracket, my picks, scoreboard, organiser). Dark only, by choice: it is a fighting-game screen. */
+:root{
+  --bg:#100e1c; --panel:#1a1730; --panel2:#251f45; --line:#3b3568;
+  --text:#f3f0ff; --muted:#a9a3d6;
+  --gold:#ffd23f; --ko:#ff3b5c; --imm:#3fd8f7; --nom:#ff7a2e; --ok:#46e08a;
+  --f-display:'Bungee','Impact','Arial Black',sans-serif;
+  --f-body:'Barlow Semi Condensed','Arial Narrow',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font:500 16px/1.4 var(--f-body);-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(115deg,transparent 0 22px,rgba(255,255,255,.02) 22px 23px)}
+.app{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:0 48px}
+.app.has-bar{padding-block-end:120px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+a{color:var(--gold)}
+h2,h3,p{margin:0}
+h2{font:400 clamp(20px,4.6vw,28px)/1.05 var(--f-display);letter-spacing:.02em}
+h3{font:400 15px/1.1 var(--f-display);letter-spacing:.04em}
+.muted{color:var(--muted)}
+input[type=text],textarea{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:3px;padding:10px;font:inherit}
+input[type=text]:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:0}
+textarea{min-height:110px;resize:vertical;font-size:14px;line-height:1.35}
+textarea.code{font:13px/1.35 ui-monospace,Menlo,Consolas,monospace;min-height:160px}
+label.fld{display:flex;flex-direction:column;gap:6px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:15px}
+.check input{margin-top:3px;width:18px;height:18px;accent-color:var(--gold)}
+
+/* header */
+.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:2px solid var(--line);padding-block:12px 0;margin-inline:-16px;padding-inline:16px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px}
+.brand h1{margin:0;font:400 clamp(22px,5.4vw,34px)/1 var(--f-display);letter-spacing:.02em}
+.brand h1 em{font-style:normal;color:var(--gold)}
+.meta{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.when{display:flex;flex-wrap:wrap;gap:6px 8px;margin-top:8px}
+.pill{display:inline-flex;gap:6px;align-items:center;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:var(--panel);border:1px solid var(--line);padding:3px 8px}
+.pill b{color:var(--gold);font-weight:700}
+.tabs{display:flex;gap:4px 18px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
+.tab{flex:none;background:transparent;border:0;border-bottom:4px solid transparent;padding:10px 2px 8px;font-weight:700;font-size:14px;letter-spacing:.03em;color:var(--muted);white-space:nowrap}
+.tab[aria-selected=true]{color:var(--text);border-bottom-color:var(--gold)}
+.note{margin-top:14px;background:var(--panel2);border-left:4px solid var(--nom);padding:10px 12px;font-size:15px}
+main{padding-top:18px;display:flex;flex-direction:column;gap:18px}
+footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:9;max-width:calc(100% - 32px);background:var(--gold);color:#1a1300;font-weight:700;padding:10px 14px;border-radius:3px}
+
+/* generic */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.btn{display:inline-block;text-decoration:none;background:var(--gold);color:#1a1300;border:0;border-radius:3px;padding:10px 14px;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 3px 0 #9c7b0e}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #9c7b0e}
+.btn[disabled]{background:var(--panel2);color:var(--muted);box-shadow:none;cursor:default}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none}
+.btn.danger{background:var(--ko);color:#fff;box-shadow:0 3px 0 #9d1631}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sub{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* portraits */
+.av{position:relative;overflow:hidden;display:grid;place-items:center;flex:none;aspect-ratio:1;max-width:100%;font-family:var(--f-display);color:#fff;
+  background:linear-gradient(135deg,hsl(var(--h) 75% 55% / .55),transparent 55%),hsl(var(--h) 55% 34%);
+  clip-path:polygon(0 0,100% 0,100% 80%,86% 100%,0 100%)}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block}
+.tg{font:700 11px/1 var(--f-body);letter-spacing:.06em;padding:3px 4px;margin-left:auto;flex:none}
+.tg.ko{background:var(--ko);color:#fff}.tg.imm{color:var(--imm)}.tg.nom{color:var(--nom)}.tg.win{color:var(--gold)}
+.tg.ok{color:var(--ok)}.tg.bad{color:var(--ko)}
+
+/* select screen */
+.sel-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:18px;align-items:start}
+.sel-wrap .fighter{grid-column:2;grid-row:1;position:sticky;top:150px}
+.sel-main{grid-column:1;grid-row:1;display:flex;flex-direction:column;gap:12px;min-width:0}
+.sel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:10px}
+.tile{position:relative;display:flex;flex-direction:column;gap:6px;padding:7px 7px 8px;background:var(--panel);border:2px solid var(--line);border-radius:4px;text-align:left;overflow:hidden}
+.tile .av{width:100%;font-size:38px}
+.tile .nm{font-weight:700;font-size:16px;letter-spacing:.03em;text-transform:uppercase;line-height:1}
+.tile .st{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.tile[aria-pressed=true]{border-color:var(--gold);background:var(--panel2)}
+.tile.st-nom .st{color:var(--nom)}.tile.st-imm .st{color:var(--imm)}.tile.st-win .st{color:var(--gold)}.tile.st-ko .st{color:var(--ko)}
+.tile.st-ko .av{filter:grayscale(1) brightness(.55)}
+.tile.st-ko::after{content:"KO";position:absolute;top:22%;left:-8%;right:-8%;text-align:center;font:400 22px/1 var(--f-display);color:#fff;background:var(--ko);padding:4px 0;transform:rotate(-12deg)}
+.fighter .big{display:flex;gap:14px;align-items:center}
+.fighter .big .av{width:112px;font-size:60px}
+.fighter .big h2{font-size:30px}
+.status{display:inline-block;margin-top:6px;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border:1px solid var(--line)}
+.status.nom{color:var(--nom);border-color:var(--nom)}.status.imm{color:var(--imm);border-color:var(--imm)}
+.status.ko{color:#fff;background:var(--ko);border-color:var(--ko)}.status.win{color:var(--gold);border-color:var(--gold)}
+.stat{display:flex;flex-direction:column;gap:5px}
+.stat .lbl{display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:600}
+.stat .lbl span:last-child{font-variant-numeric:tabular-nums;color:var(--muted)}
+.hp{position:relative;height:14px;background:var(--bg);border:1px solid var(--line)}
+.hp i{display:block;height:100%;background:var(--ok)}
+.hp.gold i{background:var(--gold)}
+.hp::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 9px,var(--bg) 9px 10px)}
+
+/* bracket */
+.seg-bar{display:inline-flex;border:1px solid var(--line)}
+.seg{background:var(--panel);border:0;padding:8px 14px;font-weight:700;font-size:14px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.seg.on{background:var(--gold);color:#1a1300}
+.bracket-scroll{overflow-x:auto;border:1px solid var(--line);background:var(--panel);padding:14px 14px 16px}
+.bracket{display:flex;gap:10px;min-width:max-content}
+.col{display:flex;flex-direction:column;gap:8px;width:122px;flex:none}
+.col-h{display:flex;flex-direction:column;gap:2px;border-bottom:2px solid var(--line);padding-bottom:6px;min-height:42px}
+.col-h span{font:400 13px/1 var(--f-display);letter-spacing:.03em}
+.col-h small{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.col.now .col-h{border-bottom-color:var(--gold)}.col.now .col-h span{color:var(--gold)}
+.col.fut .col-h span{color:var(--muted)}
+.col-b{display:flex;flex-direction:column;justify-content:center;gap:4px;height:calc(var(--n) * 34px)}
+.chip{display:flex;align-items:center;gap:6px;height:30px;padding:0 5px 0 3px;background:var(--panel2);border:1px solid var(--line);border-radius:3px;text-align:left;min-width:0}
+.chip .av{width:24px;font-size:13px}
+.chip .nm{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.chip.st-nom{border-color:var(--nom)}.chip.st-imm{border-color:var(--imm)}.chip.st-win{border-color:var(--gold)}
+.chip.st-ko{border-color:var(--ko)}.chip.st-ko .nm{text-decoration:line-through;opacity:.8}
+.chip.st-ko .av{filter:grayscale(1)}
+.chip.focus{outline:2px solid var(--gold);outline-offset:1px}
+.chip.ghost{border-style:dashed;background:transparent;justify-content:center;color:var(--muted);font-weight:700}
+.chip[disabled]{opacity:.45;cursor:default}
+.nowbar{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
+.legend b{font-weight:700}
+
+/* my picks */
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px;align-items:start}
+.pool{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px}
+.pool .chip{height:36px}.pool .chip .av{width:28px}
+.rank{display:flex;flex-direction:column;gap:5px}
+.rk{display:grid;grid-template-columns:34px 30px minmax(0,1fr) auto;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);padding:4px 6px 4px 4px;min-height:42px}
+.rk.first{border-color:var(--gold)}
+.rk .n{font:400 18px/1 var(--f-display);text-align:center;font-variant-numeric:tabular-nums}
+.rk .av{width:30px;font-size:15px}
+.rk .who{display:flex;flex-direction:column;min-width:0}
+.rk .who b{font-weight:700;text-transform:uppercase;letter-spacing:.03em;line-height:1.1}
+.rk .who small{font-size:12px;color:var(--muted)}
+.mv{display:flex;gap:4px;align-items:center}
+.mv button{background:var(--bg);border:1px solid var(--line);width:34px;height:34px;border-radius:3px;font-weight:700}
+.mv button[disabled]{opacity:.35;cursor:default}
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.pick{display:flex;align-items:center;gap:10px;background:var(--panel2);border:2px solid var(--line);border-radius:4px;padding:6px 10px 6px 6px;text-align:left}
+.pick .av{width:44px;font-size:22px}
+.pick b{font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.pick[aria-pressed=true]{border-color:var(--ko);background:var(--panel)}
+.send{border-color:var(--gold)}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+
+/* scoreboard */
+.board{display:flex;flex-direction:column;gap:6px}
+.pl{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);padding:8px 12px}
+.pl .pos{font:400 24px/1 var(--f-display);text-align:center;font-variant-numeric:tabular-nums}
+.board .pl:nth-child(1) .pos{color:var(--gold)}
+.pl .who{display:flex;flex-direction:column;min-width:0}
+.pl .who b{font-weight:700;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .who small{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.pl .pts{font:400 26px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.pl .pts small{font:600 12px var(--f-body);color:var(--muted);margin-left:3px}
+.rules{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.rules b{color:var(--gold)}
+.empty{color:var(--muted);padding:6px 0}
+
+/* organisateur */
+.plist{display:flex;flex-direction:column;gap:6px}
+.plist .pl{grid-template-columns:minmax(0,1fr) auto}
+.prev{background:var(--panel2);border:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.pubbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--panel2);border-top:2px solid var(--gold);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:8px 14px;align-items:center;justify-content:center;flex-wrap:wrap}
+.export{border-color:var(--gold)}
+
+@media (max-width:820px){
+  .sel-wrap{grid-template-columns:minmax(0,1fr)}
+  .sel-wrap .fighter{grid-column:1;grid-row:1;position:static}
+  .sel-main{grid-column:1;grid-row:2}
+}
+@media (prefers-reduced-motion:no-preference){
+  .tile,.chip,.btn{transition:transform .08s ease,border-color .12s ease}
+  .tile:active{transform:scale(.97)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top" id="head"></header>
+  <main id="view"><p class="muted">Chargement…</p></main>
+  <footer><span>Pronos entre amis · Star Academy saison 14 · site non officiel</span><a href="#orga" id="orga-link">Espace organisateur</a></footer>
+</div>
+
+<script>
+/* ===================== Élèves de la saison 14 =====================
+   Photos : portraits publiés par Puremédias (ozap.com).
+   Pour remplacer une photo, ajoute-la dans "photos" de data.json,
+   par exemple  "photos": { "felix": "photos/felix.jpg" }            */
+const ELEVES=[
+  {name:'Amel',age:22,photo:'https://static1.ozap.com/uploads/05/45/7b/28/ebd930c8f19b0b4a-580x0-1.jpg'},
+  {name:'Antoine',age:18,photo:'https://static1.ozap.com/uploads/70/5e/0a/38/11d42826c032cb57-580x0-1.jpg'},
+  {name:'Brieuc',age:18,photo:'https://static1.ozap.com/uploads/2a/9a/15/dd/5b369d33ef1236b1-580x0-1.jpg'},
+  {name:'Cameron',age:26,photo:'https://static1.ozap.com/uploads/88/9a/f1/e5/e2caea5b483900af-580x0-1.jpg'},
+  {name:'Elija',age:23,photo:'https://static1.ozap.com/uploads/64/b1/a6/7a/73bf7dc21f5e973b-580x0-1.jpg'},
+  {name:'Félix',age:null,photo:''},
+  {name:'Isabella',age:20,photo:'https://static1.ozap.com/uploads/d5/b8/fb/63/aaf7d488e5f9dcbd-580x0-1.jpg'},
+  {name:'Khalil',age:24,photo:'https://static1.ozap.com/uploads/61/ca/ee/9c/0f6ce9930eccea8c-580x0-1.jpg'},
+  {name:'Kylian',age:21,photo:'https://static1.ozap.com/uploads/63/88/2a/eb/7392baafc3fd53c7-580x0-1.jpg'},
+  {name:'Leeloo',age:24,photo:'https://static1.ozap.com/uploads/12/65/a9/e0/5024abbefe6760a7-580x0-1.jpg'},
+  {name:'Maud',age:20,photo:'https://static1.ozap.com/uploads/b2/dd/32/fe/40e93c8f27926a75-580x0-1.jpg'},
+  {name:'Mélina',age:22,photo:'https://static1.ozap.com/uploads/e2/8b/e6/a2/3baca8b30c41a91f-580x0-1.jpg'},
+  {name:'Morgan',age:19,photo:'https://static1.ozap.com/uploads/19/27/34/d7/1cea7b93836f52f4-580x0-1.jpg'},
+  {name:'Noémie',age:23,photo:'https://static1.ozap.com/uploads/01/92/4d/ba/a1e7928ddb751f21-580x0-1.jpg'},
+  {name:'Tracy',age:23,photo:'https://static1.ozap.com/uploads/20/cc/9c/e0/03fb18de2a2c6fbb-580x0-1.jpg'},
+  {name:'Ydriss',age:29,photo:'https://static1.ozap.com/uploads/4f/b4/f5/61/daa7adeff9c57e7c-580x0-1.jpg'},
+  {name:'Zoé',age:19,photo:'https://static1.ozap.com/uploads/ed/f4/dc/3f/c80fdc63dc304f9d-580x0-1.jpg'}
+];
+const SC={exact:5,near1:3,near2:1,weekly:3,winner:10};
+
+const C={},ids=[];
+ELEVES.forEach((e,i)=>{const id=e.name.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  C[id]={id,name:e.name,age:e.age,photo:e.photo,ini:e.name[0],h:Math.round((i*137.5+25)%360)};ids.push(id);});
+const N=ids.length;
+
+/* ===================== logique pure ===================== */
+function cleanOrder(o){const seen=new Set();return(Array.isArray(o)?o:[]).filter(id=>C[id]&&!seen.has(id)&&seen.add(id));}
+function cleanWeekly(w){const r={};if(w&&typeof w==='object')Object.keys(w).forEach(k=>{if(+k>0&&C[w[k]])r[String(+k)]=w[k];});return r;}
+function norm(d){const s=d&&typeof d==='object'?d:{};
+  const photos={};if(s.photos&&typeof s.photos==='object')Object.keys(s.photos).forEach(k=>{if(C[k]&&typeof s.photos[k]==='string'&&s.photos[k])photos[k]=s.photos[k];});
+  const players=(Array.isArray(s.players)?s.players:[]).filter(p=>p&&typeof p.name==='string'&&p.name.trim()).map(p=>({id:String(p.id||('p'+Math.random().toString(36).slice(2,9))),name:p.name.trim().slice(0,40),order:cleanOrder(p.order),weekly:cleanWeekly(p.weekly)}));
+  const weeks={};if(s.weeks&&typeof s.weeks==='object')Object.keys(s.weeks).forEach(k=>{if(+k>0){const w=s.weeks[k]||{};weeks[String(+k)]={immune:C[w.immune]?w.immune:null,nominees:cleanOrder(w.nominees),out:cleanOrder(w.out)};}});
+  return{rankingOpen:s.rankingOpen!==false,weeks,players,photos};}
+function weekKeys(s){return Object.keys(s.weeks).map(Number).filter(n=>n>0).sort((a,b)=>a-b);}
+function wk(s,n){const w=s.weeks[String(n)]||{};return{immune:C[w.immune]?w.immune:null,nominees:cleanOrder(w.nominees),out:cleanOrder(w.out)};}
+function outOrder(s){const o=[];weekKeys(s).forEach(n=>wk(s,n).out.forEach(id=>{if(!o.includes(id))o.push(id);}));return o;}
+function curWeek(s){const ks=weekKeys(s);for(const n of ks){if(wk(s,n).out.length===0)return n;}return ks.length?ks[ks.length-1]+1:1;}
+function places(s){const out=outOrder(s),P={};out.forEach((id,i)=>{P[id]=N-i;});const rem=ids.filter(id=>!out.includes(id));if(rem.length===1)P[rem[0]]=1;return P;}
+function winnerId(s){const out=outOrder(s);const rem=ids.filter(id=>!out.includes(id));return rem.length===1?rem[0]:null;}
+function scoreOf(p,s){
+  const P=places(s),o=cleanOrder(p.order);let rank=0,exact=0,bonus=0,weekly=0,hits=0;
+  if(o.length===N){o.forEach((id,i)=>{const a=P[id];if(a==null)return;const d=Math.abs(a-(i+1));
+    if(d===0){rank+=SC.exact;exact++;if(a===1)bonus+=SC.winner;}else if(d===1)rank+=SC.near1;else if(d===2)rank+=SC.near2;});}
+  const wp=p.weekly||{};
+  weekKeys(s).forEach(n=>{const w=wk(s,n);if(w.out.length&&wp[n]&&w.out.includes(wp[n])){weekly+=SC.weekly;hits++;}});
+  return{rank,exact,bonus,weekly,hits,total:rank+weekly+bonus};
+}
+function groupStats(players){
+  const stats={};ids.forEach(id=>{stats[id]={sum:0,n:0,win:0};});let complete=0,voters=0;
+  players.forEach(p=>{const o=cleanOrder(p.order);if(o.length){voters++;stats[o[0]].win++;}
+    if(o.length===N){complete++;o.forEach((id,i)=>{stats[id].sum+=i+1;stats[id].n++;});}});
+  return{stats,complete,voters};
+}
+function consensus(g){if(!g.complete)return[];return ids.slice().sort((a,b)=>g.stats[a].sum/g.stats[a].n-g.stats[b].sum/g.stats[b].n||C[a].name.localeCompare(C[b].name,'fr'));}
+function nextDay(dow){const d=new Date();const diff=(dow-d.getDay()+7)%7;if(diff===0)return'aujourd’hui';d.setDate(d.getDate()+diff);return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});}
+
+/* code de prono : SA14.<base64url du JSON> */
+function enc(d){
+  const w={};Object.entries(cleanWeekly(d.weekly)).forEach(([k,v])=>{w[k]=ids.indexOf(v);});
+  const j=JSON.stringify({v:1,n:(d.name||'').trim().slice(0,40),o:cleanOrder(d.order).map(i=>ids.indexOf(i)),w});
+  let s='';new TextEncoder().encode(j).forEach(x=>{s+=String.fromCharCode(x);});
+  return'SA14.'+btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function dec(text){
+  const m=/SA14\.([A-Za-z0-9_-]+)/.exec(text||'');if(!m)return null;
+  try{let b=m[1].replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';
+    const bin=atob(b);const o=JSON.parse(new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0))));
+    const weekly={};Object.entries(o.w||{}).forEach(([k,v])=>{if(+k>0&&ids[v])weekly[String(+k)]=ids[v];});
+    return{name:String(o.n||'').trim().slice(0,40),order:cleanOrder((o.o||[]).map(i=>ids[i])),weekly};
+  }catch(e){return null;}
+}
+function planImport(s,p,force){
+  const notes=[],ex=s.players.find(x=>x.name.toLowerCase()===p.name.toLowerCase());
+  let order=ex?ex.order:[];
+  if(p.order.length){if(s.rankingOpen||force){order=p.order;notes.push({ok:true,t:`Classement : ${p.order.length}/${N} élèves${p.order.length<N?' (incomplet, ne rapporte pas encore de points)':''}`});}
+    else notes.push({ok:false,t:'Classement ignoré : les classements sont verrouillés.'});}
+  const weekly=Object.assign({},ex?ex.weekly:{});
+  Object.keys(p.weekly).sort((a,b)=>a-b).forEach(n=>{const id=p.weekly[n];const done=wk(s,+n).out.length>0;
+    if(done&&!force)notes.push({ok:false,t:`Semaine ${n} ignorée (${C[id].name}) : le résultat est déjà connu.`});
+    else{weekly[n]=id;notes.push({ok:true,t:`Semaine ${n} : voit partir ${C[id].name}`});}});
+  return{ex,order,weekly,notes};
+}
+
+/* ===================== état ===================== */
+const ls={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+const S={tab:ls.get('sa14-tab')||'select',sel:ids[0],mode:'reel',focus:null,st:norm(null),loaded:false,
+  draft:{name:'',order:[],weekly:{}},orga:location.hash==='#orga'||ls.get('sa14-orga')==='1',dirty:false,note:'',pendingOut:null,
+  impText:'',imp:null,force:false,delId:null,showExport:false,badImg:new Set()};
+try{const d=JSON.parse(ls.get('sa14-draft')||'null');if(d)S.draft={name:String(d.name||'').slice(0,40),order:cleanOrder(d.order),weekly:cleanWeekly(d.weekly)};}catch(e){}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LBL={in:'En lice',nom:'Nominé',imm:'Immunisé',ko:'KO',win:'Vainqueur'};
+function saveDraft(){ls.set('sa14-draft',JSON.stringify(S.draft));}
+function saveWip(){if(S.dirty)ls.set('sa14-wip',JSON.stringify(S.st));else ls.del('sa14-wip');}
+
+function photoOf(id){const u=S.st.photos[id]||C[id].photo;return u&&!S.badImg.has(u)?u:'';}
+function av(id){const c=C[id],u=photoOf(id);
+  return`<span class="av" style="--h:${c.h}">${u?`<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-ini="${esc(c.ini)}">`:c.ini}</span>`;}
+document.addEventListener('error',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&t.dataset.ini){S.badImg.add(t.getAttribute('src'));const p=t.parentNode;if(p)p.textContent=t.dataset.ini;}},true);
+
+function status(id){
+  const s=S.st;
+  for(const n of weekKeys(s)){if(wk(s,n).out.includes(id))return{k:'ko',week:n,place:places(s)[id]};}
+  if(winnerId(s)===id)return{k:'win'};
+  const w=wk(s,curWeek(s));
+  if(w.immune===id)return{k:'imm'};
+  if(w.nominees.includes(id))return{k:'nom'};
+  return{k:'in'};
+}
+function toast(msg){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');document.body.appendChild(t);}
+  t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>{t.hidden=true;},3800);}
+
+/* ===================== vues ===================== */
+function renderHead(){
+  const s=S.st,out=outOrder(s).length,alive=N-out,cur=curWeek(s),win=winnerId(s);
+  const tabs=[['select','Sélection'],['bracket','Tableau'],['mine','Mon prono'],['board','Classement']];
+  if(S.orga)tabs.push(['orga','Orga']);
+  $('#head').innerHTML=`
+    <div class="brand"><h1>Pronos <em>Star Ac’</em></h1>
+      <span class="meta">Saison 14 · ${win?'Vainqueur : '+esc(C[win].name):alive+' en lice · semaine '+cur} · ${s.players.length} joueur${s.players.length>1?'s':''}</span></div>
+    <div class="when"><span class="pill">Nominations <b>${esc(nextDay(3))}</b></span><span class="pill">Prime <b>${esc(nextDay(6))}</b></span></div>
+    <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-act="tab" data-id="${k}">${l}</button>`).join('')}</nav>
+    ${S.note?`<p class="note">${esc(S.note)}</p>`:''}`;
+}
+function tile(id){
+  const c=C[id],st=status(id),lab=st.k==='ko'?'KO · n°'+st.place:LBL[st.k];
+  return`<button class="tile st-${st.k}" data-act="sel" data-id="${id}" aria-pressed="${S.sel===id}">${av(id)}<span class="nm">${esc(c.name)}</span><span class="st">${lab}</span></button>`;
+}
+function stat(label,val,pct,gold){
+  return`<div class="stat"><div class="lbl"><span>${label}</span><span>${val}</span></div><div class="hp${gold?' gold':''}"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div></div>`;
+}
+function fighter(id){
+  const c=C[id],st=status(id),g=groupStats(S.st.players),gs=g.stats[id],mi=cleanOrder(S.draft.order).indexOf(id);
+  const winPct=g.voters?Math.round(100*gs.win/g.voters):0,avg=gs.n?gs.sum/gs.n:null;
+  const cur=curWeek(S.st),w=wk(S.st,cur);
+  let acts='';
+  if(st.k!=='ko'&&st.k!=='win')acts+=mi===0?`<button class="btn" disabled>Ton vainqueur ✓</button>`:`<button class="btn" data-act="winner" data-id="${id}">Mon vainqueur</button>`;
+  if(st.k==='nom'&&!w.out.length){const on=S.draft.weekly[cur]===id;
+    acts+=`<button class="btn ${on?'danger':'ghost'}" data-act="weekly" data-id="${id}">${on?'Tu le vois partir ✓':'Je le vois partir'}</button>`;}
+  return`<div class="big">${av(id)}<div><h2>${esc(c.name)}</h2>${c.age?`<span class="muted">${c.age} ans</span><br>`:''}<span class="status ${st.k}">${LBL[st.k]}</span></div></div>
+    ${st.k==='ko'?`<p class="muted">Éliminé en semaine ${st.week}, à la place n°${st.place}.</p>`:''}
+    ${stat('Cote victoire',g.voters?winPct+' %':'—',winPct,true)}
+    ${stat('Place moyenne du groupe',avg?avg.toFixed(1).replace('.',','):'—',avg?(N-avg)/(N-1)*100:0)}
+    ${stat('Ton prono',mi>-1?'place n°'+(mi+1):'pas placé',mi>-1?(N-(mi+1))/(N-1)*100:0)}
+    <p class="muted">${g.complete?`Moyenne sur ${g.complete} classement${g.complete>1?'s':''} complet${g.complete>1?'s':''}.`:'Les stats du groupe apparaissent dès le premier classement complet.'}</p>
+    <div class="row">${acts}</div>`;
+}
+function vSelect(){
+  return`<div class="sel-wrap"><div class="card fighter">${fighter(S.sel)}</div>
+    <div class="sel-main"><h2>Choisis ton champion</h2><div class="sel-grid">${ids.map(tile).join('')}</div></div></div>`;
+}
+
+function chip(x){
+  if(!x)return`<div class="chip ghost" aria-hidden="true">?</div>`;
+  const tag={ko:'<b class="tg ko">KO</b>',imm:'<b class="tg imm" title="Immunisé">◆</b>',nom:'<b class="tg nom" title="Nominé">!</b>',win:'<b class="tg win">★</b>'}[x.st]||'';
+  const mk=x.mark==='ok'?'<b class="tg ok">✓</b>':x.mark==='bad'?'<b class="tg bad">✗</b>':'';
+  return`<button class="chip st-${x.st}${S.focus===x.id?' focus':''}" data-act="focus" data-id="${x.id}">${av(x.id)}<span class="nm">${esc(C[x.id].name)}</span>${tag}${mk}</button>`;
+}
+function colHtml(c){return`<div class="col${c.now?' now':''}${c.fut?' fut':''}"><div class="col-h"><span>${c.label}</span><small>${c.sub||''}</small></div><div class="col-b" style="--n:${N}">${c.chips.map(chip).join('')}</div></div>`;}
+function colsReal(){
+  const s=S.st,win=winnerId(s),cur=curWeek(s),weeks=weekKeys(s).filter(n=>n<=cur);
+  if(!win&&!weeks.includes(cur))weeks.push(cur);
+  let alive=ids.slice();const cols=[];let last=0,pending=false;
+  weeks.forEach(n=>{const w=wk(s,n),done=w.out.length>0;
+    cols.push({label:'Semaine '+n,sub:alive.length+' en lice',now:!done&&n===cur,
+      chips:alive.map(id=>({id,st:w.out.includes(id)?'ko':w.immune===id?'imm':w.nominees.includes(id)?'nom':'in'}))});
+    alive=alive.filter(id=>!w.out.includes(id));last=n;if(!done)pending=true;});
+  if(win){cols.push({label:'Vainqueur',chips:[{id:win,st:'win'}]});return cols;}
+  let c=alive.length-(pending?1:0),n=last+1;
+  while(c>=2){cols.push({label:'Semaine '+n,sub:c+' en lice',fut:true,chips:Array(c).fill(null)});c--;n++;}
+  cols.push({label:'Vainqueur',fut:true,chips:[null]});
+  return cols;
+}
+function colsProj(O){
+  const real=outOrder(S.st),cols=[];
+  for(let j=1;j<=N-1;j++){const alive=O.slice(0,N-j+1),ko=O[N-j],rj=real[j-1];
+    cols.push({label:'Semaine '+j,sub:alive.length+' en lice',chips:alive.map(id=>id===ko?{id,st:'ko',mark:rj?(rj===id?'ok':'bad'):null}:{id,st:'in'})});}
+  cols.push({label:'Vainqueur',chips:O[0]?[{id:O[0],st:'win'}]:[]});
+  return cols;
+}
+function vBracket(){
+  const s=S.st,cur=curWeek(s),w=wk(s,cur),g=groupStats(s.players);
+  const seg=[['reel','Réel'],['mine','Mon prono'],['group','Groupe']].map(([k,l])=>`<button class="seg${S.mode===k?' on':''}" data-act="mode" data-id="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join('');
+  let cols=null,msg='';
+  if(S.mode==='reel')cols=colsReal();
+  else if(S.mode==='mine'){const O=cleanOrder(S.draft.order);
+    if(O.length===N)cols=colsProj(O);else msg=`Place les ${N} élèves dans Mon prono pour voir ton tableau (${O.length}/${N}).`;}
+  else{const O=consensus(g);if(O.length){cols=colsProj(O);msg=`Classement moyen de ${g.complete} pronostic${g.complete>1?'s':''} complet${g.complete>1?'s':''}.`;}else msg='Le tableau du groupe apparaît dès que l’organisateur a ajouté un classement complet.';}
+  let now='';
+  if(S.mode==='reel'&&!winnerId(s))now=`<div class="nowbar card"><h3>Semaine ${cur}</h3>
+    <span>${w.immune?`<b style="color:var(--imm)">◆ Immunisé</b> : ${esc(C[w.immune].name)}`:'Immunisé : désigné au prime du samedi'}</span>
+    <span>${w.nominees.length?`<b style="color:var(--nom)">! Nominés</b> : ${w.nominees.map(i=>esc(C[i].name)).join(', ')}`:`Nominés : annoncés ${esc(nextDay(3))}`}</span></div>`;
+  return`<div class="row" style="justify-content:space-between"><h2>Le tableau</h2><div class="seg-bar" role="group" aria-label="Affichage">${seg}</div></div>
+    ${now}${msg?`<p class="muted">${esc(msg)}</p>`:''}
+    ${cols?`<div class="bracket-scroll"><div class="bracket">${cols.map(colHtml).join('')}</div></div>
+    <div class="legend"><span><b style="color:var(--imm)">◆</b> immunisé</span><span><b style="color:var(--nom)">!</b> nominé</span><span><b style="color:var(--ko)">KO</b> éliminé</span><span><b style="color:var(--gold)">★</b> vainqueur</span>${S.mode!=='reel'?'<span><b style="color:var(--ok)">✓</b>/<b style="color:var(--ko)">✗</b> éliminé deviné ou raté</span>':''}<span>Touche un élève pour suivre son parcours.</span></div>`:''}`;
+}
+
+function message(d){
+  const o=cleanOrder(d.order),cur=curWeek(S.st),lines=[`Mon prono Star Ac’ : ${d.name||'(mets ton prénom)'}`];
+  if(o.length)lines.push(`Vainqueur : ${C[o[0]].name}`,`Classement : ${o.map((id,i)=>(i+1)+'. '+C[id].name).join(', ')}`);
+  const wp=d.weekly[cur];if(wp)lines.push(`Qui part en semaine ${cur} : ${C[wp].name}`);
+  lines.push(`Code : ${enc(d)}`);
+  return lines.join('\n');
+}
+function weeklyBlock(){
+  const s=S.st,cur=curWeek(s),w=wk(s,cur),win=winnerId(s);
+  let h=`<div class="card"><h3>Qui part samedi ?</h3>`;
+  if(win)return h+`<p class="muted">La saison est terminée. Vainqueur : ${esc(C[win].name)}.</p></div>`;
+  if(!w.nominees.length)return h+`<p class="muted">Les nominés sont annoncés ${esc(nextDay(3))}. Reviens alors choisir celui qui quitte le château au prime du ${esc(nextDay(6))}, puis renvoie ton message.</p></div>`;
+  const mine=S.draft.weekly[cur];
+  return h+`<p class="muted">Semaine ${cur} : ${SC.weekly} points si tu trouves l’éliminé. Envoie ton choix avant le prime.</p>
+    <div class="pick-grid">${w.nominees.map(id=>`<button class="pick" data-act="weekly" data-id="${id}" aria-pressed="${mine===id}">${av(id)}<b>${esc(C[id].name)}</b></button>`).join('')}</div></div>`;
+}
+function vMine(){
+  const o=cleanOrder(S.draft.order),P=places(S.st),pool=ids.filter(id=>!o.includes(id));
+  const rows=o.map((id,i)=>{const a=P[id];
+    const sub=i===0?'Vainqueur':i===N-1?'Premier éliminé':'Place n°'+(i+1);
+    return`<div class="rk${i===0?' first':''}"><span class="n">${i+1}</span>${av(id)}
+      <span class="who"><b>${esc(C[id].name)}</b><small>${sub}${a!=null?' · réel n°'+a:''}</small></span>
+      <span class="mv"><button data-act="up" data-id="${id}" aria-label="Monter ${esc(C[id].name)}"${i===0?' disabled':''}>↑</button><button data-act="down" data-id="${id}" aria-label="Descendre ${esc(C[id].name)}"${i===o.length-1?' disabled':''}>↓</button><button data-act="rm" data-id="${id}" aria-label="Retirer ${esc(C[id].name)}">✕</button></span></div>`;}).join('');
+  const canShare=!!navigator.share;
+  return`${weeklyBlock()}
+    <div class="two">
+      <div class="card"><h3>Mon classement final · ${o.length}/${N}</h3>
+        <p class="muted">Touche les élèves dans l’ordre : ton vainqueur d’abord, puis les autres jusqu’au premier éliminé.${S.st.rankingOpen?'':' Les classements sont verrouillés : seul ton choix de la semaine sera pris en compte.'}</p>
+        <div class="rank">${rows||'<p class="empty">Aucun élève placé pour l’instant.</p>'}</div></div>
+      <div class="card"><h3>À placer · ${pool.length}</h3>
+        ${pool.length?`<div class="pool">${pool.map(id=>`<button class="chip" data-act="add" data-id="${id}">${av(id)}<span class="nm">${esc(C[id].name)}</span></button>`).join('')}</div>`:'<p class="empty">Tous les élèves sont placés. Réorganise-les avec les flèches.</p>'}</div>
+    </div>
+    <div class="card send"><h3>Envoyer mon prono</h3>
+      <ol class="steps"><li>Écris ton prénom.</li><li>${canShare?'Touche « Envoyer » et choisis WhatsApp, SMS…':'Copie le message.'}</li><li>${canShare?'Envoie-le':'Envoie-le'} à l’organisateur. Il l’ajoute au classement.</li></ol>
+      <label class="fld"><span class="sub">Ton prénom</span><input type="text" id="pname" maxlength="40" autocomplete="given-name" value="${esc(S.draft.name)}"></label>
+      <div class="row">${canShare?'<button class="btn" data-act="share">Envoyer</button><button class="btn ghost" data-act="copy">Copier</button>':'<button class="btn" data-act="copy">Copier le message</button>'}${S.orga?'<button class="btn ghost" data-act="importDraft">M’ajouter directement</button>':''}</div>
+      <textarea id="msg" readonly aria-label="Message à envoyer">${esc(message(S.draft))}</textarea>
+      <p class="muted">Ton brouillon est gardé dans ce navigateur. Tu peux renvoyer un message chaque fois que tu changes d’avis : le dernier reçu remplace le précédent.</p></div>`;
+}
+
+function vBoard(){
+  const s=S.st,rows=s.players.map(p=>({p,sc:scoreOf(p,s),n:p.order.length}));
+  rows.sort((a,b)=>b.sc.total-a.sc.total||b.n-a.n||a.p.name.localeCompare(b.p.name,'fr'));
+  let pos=0,prev=null;
+  const list=rows.map((r,i)=>{if(r.sc.total!==prev){pos=i+1;prev=r.sc.total;}
+    const w=r.p.order[0]?' · vainqueur : '+esc(C[r.p.order[0]].name):'';
+    return`<div class="pl"><span class="pos">${pos}</span><span class="who"><b>${esc(r.p.name)}</b><small>Classement ${r.sc.rank} · Hebdo ${r.sc.weekly} · Bonus ${r.sc.bonus} · ${r.n}/${N} placés${w}</small></span><span class="pts">${r.sc.total}<small>pts</small></span></div>`;}).join('');
+  return`<h2>Classement des joueurs</h2>
+    <div class="board">${list||'<p class="empty">Aucun pronostic pour l’instant. Prépare le tien dans Mon prono et envoie-le à l’organisateur.</p>'}</div>
+    <div class="card"><h3>Barème</h3><ul class="rules">
+      <li>Classement final : <b>${SC.exact} pts</b> si l’élève est à sa place exacte, <b>${SC.near1}</b> à une place d’écart, <b>${SC.near2}</b> à deux places.</li>
+      <li>Qui part chaque semaine : <b>${SC.weekly} pts</b> si tu avais désigné l’éliminé parmi les nominés.</li>
+      <li>Vainqueur trouvé : <b>+${SC.winner} pts</b> de bonus.</li>
+      <li>Les points du classement ne comptent que pour un classement complet (${N} élèves).</li></ul></div>`;
+}
+
+function exportJson(){return JSON.stringify(S.st,null,2)+'\n';}
+function vOrga(){
+  const s=S.st,cur=curWeek(s),w=wk(s,cur),out=outOrder(s),alive=ids.filter(id=>!out.includes(id)),win=winnerId(s);
+  const pickRow=(list,on,act,dis)=>`<div class="pool">${list.map(id=>`<button class="chip${on(id)?' focus':''}" data-act="${act}" data-id="${id}" aria-pressed="${on(id)}"${dis&&dis(id)?' disabled':''}>${av(id)}<span class="nm">${esc(C[id].name)}</span></button>`).join('')}</div>`;
+  let exp='';
+  if(S.showExport)exp=`<div class="card export"><h3>Mettre le site à jour</h3>
+    <ol class="steps"><li>Copie ou télécharge le fichier ci-dessous.</li>
+    <li>Sur GitHub, ouvre <b>data.json</b> dans ton dépôt et clique sur le crayon (Edit).</li>
+    <li>Remplace tout le contenu par celui-ci, puis clique sur <b>Commit changes</b>.</li>
+    <li>Le site est à jour pour tout le monde en une à deux minutes.</li></ol>
+    <div class="row"><button class="btn" data-act="copyJson">Copier</button><button class="btn ghost" data-act="dlJson">Télécharger data.json</button><button class="btn ghost" data-act="doneJson">C’est fait sur GitHub</button></div>
+    <textarea class="code" id="json" readonly aria-label="Contenu de data.json">${esc(exportJson())}</textarea></div>`;
+  let week;
+  if(win)week=`<div class="card"><h3>Saison terminée</h3><p>Vainqueur : ${esc(C[win].name)}.</p></div>`;
+  else{const cand=w.nominees.length?w.nominees:alive;
+    week=`<div class="card"><h3>Semaine ${cur}</h3>
+      <span class="sub">Immunisé (désigné au prime du samedi)</span>${pickRow(alive,id=>w.immune===id,'immune',id=>w.nominees.includes(id))}
+      <span class="sub">Nominés (mercredi)</span>${pickRow(alive,id=>w.nominees.includes(id),'nominee',id=>w.immune===id)}
+      <span class="sub">Éliminé (samedi)</span>${pickRow(cand,id=>S.pendingOut===id,'pendOut')}
+      <div class="row"><button class="btn danger" data-act="confirmOut"${S.pendingOut?'':' disabled'}>${S.pendingOut?'Confirmer le KO de '+esc(C[S.pendingOut].name):'Choisis l’éliminé'}</button></div>
+      <p class="muted">Après le KO, la semaine suivante s’ouvre : renseigne alors l’immunisé désigné au même prime.</p></div>`;}
+  let prev='';
+  if(S.imp){
+    if(!S.imp.name)prev=`<div class="prev"><b style="color:var(--ko)">Ce message n’a pas de prénom.</b><span class="muted">Demande au joueur d’écrire son prénom et de renvoyer le message.</span></div>`;
+    else{const pl=planImport(s,S.imp,S.force);
+      prev=`<div class="prev"><b>${esc(S.imp.name)} ${pl.ex?'(remplace son prono actuel)':'(nouveau joueur)'}</b>
+        ${pl.notes.map(n=>`<span style="color:${n.ok?'var(--text)':'var(--nom)'}">${n.ok?'✓':'⚠'} ${esc(n.t)}</span>`).join('')||'<span class="muted">Rien à ajouter dans ce message.</span>'}
+        <label class="check"><input type="checkbox" id="force"${S.force?' checked':''}> Accepter quand même les éléments ignorés (message reçu à temps mais saisi en retard)</label>
+        <div class="row"><button class="btn" data-act="applyImp">Ajouter au classement</button><button class="btn ghost" data-act="cancelImp">Annuler</button></div></div>`;}
+  }
+  const players=s.players.slice().sort((a,b)=>a.name.localeCompare(b.name,'fr')).map(p=>`<div class="pl"><span class="who"><b>${esc(p.name)}</b><small>${p.order.length}/${N} placés · ${Object.keys(p.weekly).length} choix hebdo</small></span>
+    ${S.delId===p.id?`<span class="row"><button class="btn danger" data-act="delYes" data-id="${p.id}">Supprimer</button><button class="btn ghost" data-act="delNo">Garder</button></span>`:`<button class="btn ghost" data-act="del" data-id="${p.id}">Retirer</button>`}</div>`).join('');
+  return`<h2>Espace organisateur</h2>
+    <p class="muted">Tes modifications restent dans ce navigateur tant que tu n’as pas mis à jour data.json sur GitHub. Les autres ne les voient qu’après.</p>
+    ${exp}${week}
+    <div class="card"><h3>Ajouter un prono reçu</h3>
+      <p class="muted">Colle le message envoyé par un joueur. Seul le code « SA14. » est lu.</p>
+      <textarea id="imp" aria-label="Message reçu">${esc(S.impText)}</textarea>
+      <div class="row"><button class="btn" data-act="readImp">Lire le message</button></div>${prev}</div>
+    <div class="card"><h3>Joueurs · ${s.players.length}</h3><div class="plist">${players||'<p class="empty">Aucun joueur. Colle le premier message reçu ci-dessus.</p>'}</div></div>
+    <div class="card"><h3>Réglages</h3>
+      <div class="row"><button class="btn ghost" data-act="lock">${s.rankingOpen?'Verrouiller les classements':'Rouvrir les classements'}</button>
+      <button class="btn ghost" data-act="undo"${out.length?'':' disabled'}>Annuler la dernière élimination</button>
+      ${S.dirty?'<button class="btn ghost" data-act="discard">Abandonner mes modifications</button>':''}
+      <button class="btn ghost" data-act="quitOrga">Quitter l’espace organisateur</button></div>
+      <p class="muted">Classements ${s.rankingOpen?'ouverts : les joueurs peuvent encore changer leur classement final.':'verrouillés : seuls les choix de la semaine sont acceptés.'}</p></div>`;
+}
+
+function render(){
+  const sc=document.querySelector('.bracket-scroll'),left=sc?sc.scrollLeft:0;
+  if(S.tab==='orga'&&!S.orga)S.tab='select';
+  renderHead();
+  const v={select:vSelect,bracket:vBracket,mine:vMine,board:vBoard,orga:vOrga}[S.tab]||vSelect;
+  $('#view').innerHTML=v();
+  const sc2=document.querySelector('.bracket-scroll');if(sc2)sc2.scrollLeft=left;
+  let bar=$('#pubbar');const show=S.orga&&S.dirty&&!(S.tab==='orga'&&S.showExport);
+  if(show){if(!bar){bar=document.createElement('div');bar.id='pubbar';bar.className='pubbar';document.body.appendChild(bar);}
+    bar.innerHTML=`<span>Modifications pas encore en ligne</span><button class="btn" data-act="export">Mettre le site à jour</button>`;}
+  else if(bar)bar.remove();
+  $('.app').classList.toggle('has-bar',show);
+  $('#orga-link').hidden=S.orga;
+}
+
+/* ===================== actions ===================== */
+function setDraft(fn){fn(S.draft);S.draft.order=cleanOrder(S.draft.order);saveDraft();render();}
+function changed(){S.dirty=true;saveWip();render();}
+function editWeek(fn){const n=String(curWeek(S.st));S.st.weeks[n]=Object.assign({immune:null,nominees:[],out:[]},S.st.weeks[n]);fn(S.st.weeks[n]);changed();}
+function copyText(txt,sel,ok){
+  const fallback=()=>{const m=$(sel);if(m){m.focus();m.select();}toast('Copie bloquée : le texte est sélectionné, copie-le à la main.');};
+  try{navigator.clipboard.writeText(txt).then(()=>toast(ok),fallback);}catch(err){fallback();}
+}
+function enterOrga(){S.orga=true;ls.set('sa14-orga','1');S.tab='orga';ls.set('sa14-tab','orga');
+  const wip=ls.get('sa14-wip');if(wip){try{S.st=norm(JSON.parse(wip));S.dirty=true;}catch(e){}}
+  if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0);}
+window.addEventListener('hashchange',()=>{if(location.hash==='#orga')enterOrga();});
+
+document.addEventListener('input',e=>{
+  if(e.target.id==='pname'){S.draft.name=e.target.value.slice(0,40);saveDraft();const m=$('#msg');if(m)m.value=message(S.draft);}
+  else if(e.target.id==='imp'){S.impText=e.target.value;}
+});
+document.addEventListener('change',e=>{if(e.target.id==='force'){S.force=e.target.checked;render();}});
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-act]');if(!t||t.disabled)return;
+  const a=t.dataset.act,id=t.dataset.id,o=cleanOrder(S.draft.order);
+  if(a==='tab'){S.tab=id;S.pendingOut=null;ls.set('sa14-tab',id);render();window.scrollTo(0,0);}
+  else if(a==='sel'){S.sel=id;render();}
+  else if(a==='mode'){S.mode=id;render();}
+  else if(a==='focus'){S.focus=S.focus===id?null:id;render();}
+  else if(a==='add')setDraft(d=>{d.order=o.concat(id);});
+  else if(a==='rm')setDraft(d=>{d.order=o.filter(x=>x!==id);});
+  else if(a==='up'||a==='down'){const i=o.indexOf(id),j=a==='up'?i-1:i+1;if(i>-1&&j>=0&&j<o.length){[o[i],o[j]]=[o[j],o[i]];setDraft(d=>{d.order=o;});}}
+  else if(a==='winner')setDraft(d=>{d.order=[id].concat(o.filter(x=>x!==id));});
+  else if(a==='weekly'){const n=String(curWeek(S.st));setDraft(d=>{if(d.weekly[n]===id)delete d.weekly[n];else d.weekly[n]=id;});}
+  else if(a==='copy'||a==='share'){
+    if(!S.draft.name.trim()){toast('Écris d’abord ton prénom.');const p=$('#pname');if(p)p.focus();return;}
+    const txt=message(S.draft);
+    if(a==='share'){navigator.share({text:txt}).catch(()=>{});}
+    else copyText(txt,'#msg','Message copié. Colle-le dans ta conversation avec l’organisateur.');
+  }
+  else if(a==='importDraft'){if(!S.draft.name.trim()){toast('Écris d’abord ton prénom.');return;}S.imp={name:S.draft.name.trim(),order:cleanOrder(S.draft.order),weekly:cleanWeekly(S.draft.weekly)};S.force=false;S.tab='orga';ls.set('sa14-tab','orga');render();window.scrollTo(0,0);}
+  else if(a==='readImp'){const p=dec(S.impText);if(!p){S.imp=null;render();toast('Aucun code « SA14. » valide dans ce message.');return;}S.imp=p;S.force=false;render();}
+  else if(a==='cancelImp'){S.imp=null;S.impText='';render();}
+  else if(a==='applyImp'){const p=S.imp;if(!p||!p.name)return;const pl=planImport(S.st,p,S.force);
+    if(pl.ex){pl.ex.order=pl.order;pl.ex.weekly=pl.weekly;}else S.st.players.push({id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:p.name,order:pl.order,weekly:pl.weekly});
+    S.imp=null;S.impText='';S.force=false;toast('Prono de '+p.name+' ajouté.');changed();}
+  else if(a==='del'){S.delId=id;render();}
+  else if(a==='delNo'){S.delId=null;render();}
+  else if(a==='delYes'){S.st.players=S.st.players.filter(p=>p.id!==id);S.delId=null;changed();}
+  else if(a==='immune')editWeek(w=>{w.immune=w.immune===id?null:id;});
+  else if(a==='nominee')editWeek(w=>{const nm=cleanOrder(w.nominees);w.nominees=nm.includes(id)?nm.filter(x=>x!==id):nm.concat(id);});
+  else if(a==='pendOut'){S.pendingOut=S.pendingOut===id?null:id;render();}
+  else if(a==='confirmOut'){const k=S.pendingOut;if(k){S.pendingOut=null;editWeek(w=>{w.out=[k];});}}
+  else if(a==='lock'){S.st.rankingOpen=!S.st.rankingOpen;changed();}
+  else if(a==='undo'){const ks=weekKeys(S.st).filter(n=>wk(S.st,n).out.length);if(ks.length){const n=String(ks[ks.length-1]);
+    Object.keys(S.st.weeks).forEach(k=>{if(+k>+n){const w=wk(S.st,+k);if(!w.out.length&&!w.nominees.length&&!w.immune)delete S.st.weeks[k];}});
+    S.st.weeks[n].out=[];changed();}}
+  else if(a==='export'){S.tab='orga';S.showExport=true;render();window.scrollTo(0,0);}
+  else if(a==='copyJson')copyText(exportJson(),'#json','data.json copié. Colle-le sur GitHub.');
+  else if(a==='dlJson'){const url=URL.createObjectURL(new Blob([exportJson()],{type:'application/json'}));const l=document.createElement('a');l.href=url;l.download='data.json';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
+  else if(a==='doneJson'){S.dirty=false;S.showExport=false;saveWip();toast('Parfait. Le site se met à jour d’ici une à deux minutes.');render();}
+  else if(a==='discard'){S.dirty=false;S.showExport=false;saveWip();load();}
+  else if(a==='quitOrga'){S.orga=false;ls.del('sa14-orga');S.tab='select';ls.set('sa14-tab','select');render();}
+});
+$('#orga-link').addEventListener('click',e=>{e.preventDefault();enterOrga();});
+
+/* ===================== chargement ===================== */
+async function load(){
+  try{const r=await fetch('data.json?v='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(r.status);
+    const fresh=norm(await r.json());
+    if(!(S.orga&&S.dirty))S.st=fresh;
+    S.note='';
+  }catch(e){S.note='Impossible de charger data.json. Vérifie que le fichier est bien à côté de index.html.';}
+  S.loaded=true;render();
+}
+if(S.orga){const wip=ls.get('sa14-wip');if(wip){try{S.st=norm(JSON.parse(wip));S.dirty=true;}catch(e){}}}
+if(location.hash==='#orga')enterOrga();
+render();
+load();
+</script>
+</body>
+</html>
