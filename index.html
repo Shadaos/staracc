@@ -129,6 +129,9 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 /* mon prono */
 .who-card{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
 .who-card .fld{display:flex;gap:8px;flex:1 1 260px;min-width:0}
+.login{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.lf{display:flex;flex-direction:column;gap:6px;flex:1 1 180px;min-width:0}
+.lf.code{flex:0 1 130px}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px;align-items:start}
 .pool{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px}
 .pool .chip{height:36px}.pool .chip .av{width:28px}
@@ -140,6 +143,15 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .rk .who{display:flex;flex-direction:column;min-width:0}
 .rk .who b{font-weight:700;text-transform:uppercase;letter-spacing:.03em;line-height:1.1}
 .rk .who small{font-size:12px;color:var(--muted)}
+.final .rank,.final .pool.dropzone{min-height:64px}
+.dropzone{border:2px dashed transparent;border-radius:4px;transition:border-color .12s ease}
+.dragging .dropzone{border-color:var(--line)}
+.rk.drag{grid-template-columns:18px 30px 30px minmax(0,1fr) auto;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.grip{color:var(--muted);font-size:18px;line-height:1;text-align:center}
+.rmx{background:transparent;border:1px solid var(--line);width:32px;height:32px;border-radius:3px;color:var(--muted);font-weight:700}
+.chip.drag{cursor:grab;user-select:none;-webkit-user-select:none}
+.drag-ghost{opacity:.35;border:2px dashed var(--gold)!important}
+.drag-chosen{border-color:var(--gold)!important;box-shadow:0 6px 18px rgba(0,0,0,.45)}
 .mv{display:flex;gap:4px;align-items:center}
 .mv button{background:var(--bg);border:1px solid var(--line);width:34px;height:34px;border-radius:3px;font-weight:700}
 .mv button[disabled]{opacity:.35;cursor:default}
@@ -205,8 +217,9 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
   <footer><span>Pronos entre amis · Star Academy saison 14 · site non officiel</span><a href="#orga" id="orga-link">Espace organisateur</a></footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script type="module">
-import { firebaseConfig } from './firebase-config.js?v=4';
+import { firebaseConfig } from './firebase-config.js?v=5';
 
 /* ===================== Réglages ===================== */
 const LAUNCH = [2026, 9, 10];      // prime de lancement : samedi 10 octobre 2026 (mois 0-11)
@@ -215,14 +228,14 @@ const SC = {exact:5, near1:3, near2:1, elim:3, immune:3, winner:10};
 const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 const ELEVES=[
-  {name:'Amel',age:22},{name:'Antoine',age:18},{name:'Brieuc',age:18},{name:'Cameron',age:26},
-  {name:'Elija',age:23},{name:'Félix',age:null},{name:'Isabella',age:20},{name:'Khalil',age:24},
-  {name:'Kylian',age:21},{name:'Leeloo',age:24},{name:'Maud',age:20},{name:'Mélina',age:22},
-  {name:'Morgan',age:19},{name:'Noémie',age:23},{name:'Tracy',age:23},{name:'Ydriss',age:29},{name:'Zoé',age:19}
+  {name:'Amel',age:22,g:'f'},{name:'Antoine',age:18,g:'m'},{name:'Brieuc',age:18,g:'m'},{name:'Cameron',age:26,g:'m'},
+  {name:'Elija',age:23,g:'f'},{name:'Félix',age:null,g:'m'},{name:'Isabella',age:20,g:'f'},{name:'Khalil',age:24,g:'m'},
+  {name:'Kylian',age:21,g:'m'},{name:'Leeloo',age:24,g:'f'},{name:'Maud',age:20,g:'f'},{name:'Mélina',age:22,g:'f'},
+  {name:'Morgan',age:19,g:'m'},{name:'Noémie',age:23,g:'f'},{name:'Tracy',age:23,g:'f'},{name:'Ydriss',age:29,g:'m'},{name:'Zoé',age:19,g:'f'}
 ];
 const C={},ids=[];
 ELEVES.forEach((e,i)=>{const id=e.name.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
-  C[id]={id,name:e.name,age:e.age,photo:'photos/'+id+'.jpg',ini:e.name[0],h:Math.round((i*137.5+25)%360)};ids.push(id);});
+  C[id]={id,name:e.name,age:e.age,f:e.g==='f',photo:'photos/'+id+'.jpg',ini:e.name[0],h:Math.round((i*137.5+25)%360)};ids.push(id);});
 const N=ids.length;
 
 /* ===================== logique pure ===================== */
@@ -271,11 +284,13 @@ const ls={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set
 const S={tab:ls.get('sa14-tab')||'select',sub:ls.get('sa14-sub')||'week',sel:ids[0],mode:'reel',focus:null,
   conn:'loading',seasonExists:false,season:normSeason(null),players:{},picks:{},uid:null,
   me:{name:'',order:[]},meDirty:false,save:'',nameEdit:false,
-  orga:location.hash==='#orga'||ls.get('sa14-orga')==='1',note:'',pendingOut:null,delId:null,badImg:new Set()};
+  form:{name:null,code:''},anon:true,login:'',busy:false,dragging:false,orga:location.hash==='#orga'||ls.get('sa14-orga')==='1',note:'',pendingOut:null,delId:null,badImg:new Set()};
 let fb=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LBL={in:'En lice',nom:'Nominé',imm:'Immunisé',ko:'KO',win:'Vainqueur'};
+const E=id=>C[id].f?'e':'',PR=id=>C[id].f?'la':'le';
+function lbl(k,id){if(k==='nom'||k==='imm')return LBL[k]+E(id);if(k==='win')return C[id].f?'Gagnante':'Vainqueur';return LBL[k];}
 const registered=()=>!!(S.uid&&S.players[S.uid]);
 
 function av(id){const c=C[id],u=c.photo;
@@ -312,7 +327,7 @@ function renderHead(){
     ${banner?`<p class="note">${esc(banner)}</p>`:''}`;
 }
 function tile(id){
-  const c=C[id],st=status(id),lab=st.k==='ko'?'KO · n°'+st.place:LBL[st.k];
+  const c=C[id],st=status(id),lab=st.k==='ko'?'KO · n°'+st.place:lbl(st.k,id);
   return`<button class="tile st-${st.k}" data-act="sel" data-id="${id}" aria-pressed="${S.sel===id}">${av(id)}<span class="nm">${esc(c.name)}</span><span class="st">${lab}</span></button>`;
 }
 function stat(label,val,pct,gold){
@@ -326,10 +341,10 @@ function fighter(id){
   const s=S.season,cur=curWeek(s),w=wk(s,cur),open=weekOpen(cur)&&!winnerId(s),p=myPick(cur)||{};
   let acts='';
   if(st.k!=='ko'&&st.k!=='win'&&s.rankingOpen)acts+=mi===0?`<button class="btn" disabled>Ton vainqueur ✓</button>`:`<button class="btn" data-act="winner" data-id="${id}">Mon vainqueur</button>`;
-  if(open&&st.k==='nom')acts+=`<button class="btn ${p.elim===id?'danger':'ghost'}" data-act="pick" data-f="elim" data-id="${id}">${p.elim===id?'Tu le vois partir ✓':'Je le vois partir'}</button>`;
-  if(open&&st.k!=='ko'&&st.k!=='win')acts+=`<button class="btn ghost" data-act="pick" data-f="immune" data-id="${id}">${p.immune===id?'Tu le vois immunisé ✓':'Je le vois immunisé'}</button>`;
-  return`<div class="big">${av(id)}<div><h2>${esc(c.name)}</h2>${c.age?`<span class="muted">${c.age} ans</span><br>`:''}<span class="status ${st.k}">${LBL[st.k]}</span></div></div>
-    ${st.k==='ko'?`<p class="muted">Éliminé en semaine ${st.week}, à la place n°${st.place}.</p>`:''}
+  if(open&&st.k==='nom')acts+=`<button class="btn ${p.elim===id?'danger':'ghost'}" data-act="pick" data-f="elim" data-id="${id}">${p.elim===id?`Tu ${PR(id)} vois partir ✓`:`Je ${PR(id)} vois partir`}</button>`;
+  if(open&&st.k!=='ko'&&st.k!=='win')acts+=`<button class="btn ghost" data-act="pick" data-f="immune" data-id="${id}">${p.immune===id?`Tu ${PR(id)} vois immunisé${E(id)} ✓`:`Je ${PR(id)} vois immunisé${E(id)}`}</button>`;
+  return`<div class="big">${av(id)}<div><h2>${esc(c.name)}</h2>${c.age?`<span class="muted">${c.age} ans</span><br>`:''}<span class="status ${st.k}">${lbl(st.k,id)}</span></div></div>
+    ${st.k==='ko'?`<p class="muted">Éliminé${E(id)} en semaine ${st.week}, à la place n°${st.place}.</p>`:''}
     ${stat('Cote victoire',g.voters?winPct+' %':'—',winPct,true)}
     ${stat('Place moyenne du groupe',avg?avg.toFixed(1).replace('.',','):'—',avg?(N-avg)/(N-1)*100:0)}
     ${stat('Ton prono',mi>-1?'place n°'+(mi+1):'pas placé',mi>-1?(N-(mi+1))/(N-1)*100:0)}
@@ -392,11 +407,24 @@ function whoCard(){
   if(S.conn==='noconfig')return`<div class="card"><p class="muted">Les pronos s’enregistreront ici dès que l’organisateur aura relié le site à sa base de données.</p></div>`;
   if(S.conn!=='ok'||!S.uid)return`<div class="card"><p class="muted">Connexion en cours…</p></div>`;
   if(!S.seasonExists)return`<div class="card"><p class="muted">La saison n’est pas encore ouverte. Reviens un peu plus tard.</p></div>`;
-  if(registered()&&!S.nameEdit)return`<div class="card who-card"><span>Tu joues en tant que <b>${esc(S.players[S.uid].name)}</b></span><button class="btn ghost" data-act="editName">Changer de pseudo</button></div>`;
-  return`<div class="card"><h3>${registered()?'Changer de pseudo':'Choisis ton pseudo pour jouer'}</h3>
-    <div class="who-card"><div class="fld"><input type="text" id="pname" maxlength="40" autocomplete="nickname" placeholder="Ton prénom ou pseudo" value="${esc(S.nameEdit&&registered()?S.players[S.uid].name:S.me.name)}" aria-label="Pseudo"><button class="btn" data-act="saveName">Valider</button></div></div>
-    <p class="muted">Tes pronos sont liés à ce navigateur. Joue toujours depuis le même téléphone ou ordinateur.</p></div>`;
+  const busy=S.busy?' disabled':'';
+  if(registered()&&!S.anon){
+    if(S.nameEdit)return`<div class="card"><h3>Changer de pseudo affiché</h3>
+      <div class="who-card"><div class="fld"><input type="text" id="pname" maxlength="40" autocomplete="nickname" value="${esc(S.players[S.uid].name)}" aria-label="Pseudo affiché"><button class="btn" data-act="saveName">Valider</button></div></div>
+      <p class="muted">Pour te reconnecter, garde l’identifiant <b>${esc(S.login||'')}</b> et ton code.</p></div>`;
+    return`<div class="card who-card"><span>Tu joues en tant que <b>${esc(S.players[S.uid].name)}</b>${S.login?` <span class="muted">· identifiant ${esc(S.login)}</span>`:''}</span>
+      <span class="row"><button class="btn ghost" data-act="editName">Changer de pseudo</button><button class="btn ghost" data-act="logout">Changer de joueur</button></span></div>`;
+  }
+  const legacy=registered()&&S.anon,pre=S.form.name!=null?S.form.name:(legacy?S.players[S.uid].name:'');
+  return`<div class="card"><h3>${legacy?'Protège ton joueur avec un code':'Pseudo et code pour jouer'}</h3>
+    <p class="muted">${legacy?`Ajoute un code à <b>${esc(pre)}</b> pour retrouver tes pronos sur n’importe quel téléphone ou ordinateur.`:'Nouveau joueur : choisis un pseudo et un code de 4 à 8 chiffres. Déjà inscrit : mets le même pseudo et le même code pour retrouver tes pronos sur cet appareil.'}</p>
+    <div class="login">
+      <label class="lf"><span class="sub">Pseudo</span><input type="text" id="pname" maxlength="40" autocomplete="username" value="${esc(pre)}"></label>
+      <label class="lf code"><span class="sub">Code</span><input type="text" id="pcode" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="current-password" placeholder="ex. 4827" value="${esc(S.form.code||'')}"></label>
+      <button class="btn" data-act="join"${busy}>${S.busy?'Connexion…':'Jouer'}</button></div>
+    <p class="muted">Retiens bien ton code : sans lui, impossible de retrouver ton joueur sur un autre appareil.</p></div>`;
 }
+function loginSlug(name){return name.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
 function saveLine(){const s=S.save;if(!s)return'';
   if(s==='pending')return'<span class="save">Enregistrement…</span>';
   if(s==='ok')return'<span class="save ok">✓ Enregistré</span>';
@@ -431,16 +459,34 @@ function vFinal(){
   const s=S.season,o=cleanOrder(S.me.order),P=places(s),pool=ids.filter(id=>!o.includes(id)),edit=registered()&&s.rankingOpen;
   const rows=o.map((id,i)=>{const a=P[id];
     const sub=i===0?'Vainqueur':i===N-1?'Premier éliminé':'Place n°'+(i+1);
-    return`<div class="rk${i===0?' first':''}"><span class="n">${i+1}</span>${av(id)}
+    return`<div class="rk${i===0?' first':''}${edit?' drag':''}" data-id="${id}">${edit?'<span class="grip" aria-hidden="true">⠿</span>':''}<span class="n">${i+1}</span>${av(id)}
       <span class="who"><b>${esc(C[id].name)}</b><small>${sub}${a!=null?' · réel n°'+a:''}</small></span>
-      ${edit?`<span class="mv"><button data-act="up" data-id="${id}" aria-label="Monter ${esc(C[id].name)}"${i===0?' disabled':''}>↑</button><button data-act="down" data-id="${id}" aria-label="Descendre ${esc(C[id].name)}"${i===o.length-1?' disabled':''}>↓</button><button data-act="rm" data-id="${id}" aria-label="Retirer ${esc(C[id].name)}">✕</button></span>`:'<span></span>'}</div>`;}).join('');
-  return`<div class="card"><div class="wk-head"><h3>Mon classement final · ${o.length}/${N}</h3>${saveLine()}</div>
-      <p class="muted">${s.rankingOpen?'Touche les élèves dans l’ordre : ton vainqueur d’abord, puis les autres jusqu’au premier éliminé. Chaque changement est enregistré automatiquement.':'Les classements sont verrouillés par l’organisateur : ton classement ne peut plus changer.'}</p></div>
-    <div class="two">
-      <div class="card"><div class="rank">${rows||'<p class="empty">Aucun élève placé pour l’instant.</p>'}</div></div>
+      ${edit?`<button class="rmx" data-act="rm" data-id="${id}" aria-label="Retirer ${esc(C[id].name)}">✕</button>`:'<span></span>'}</div>`;}).join('');
+  const help=s.rankingOpen
+    ?'Glisse les élèves dans la colonne « Mon classement » : ton vainqueur tout en haut, le premier éliminé tout en bas. Tu peux aussi toucher un élève pour l’ajouter à la fin, et le retirer avec ✕. Tout est enregistré automatiquement.'
+    :'Les classements sont verrouillés par l’organisateur : ton classement ne peut plus changer.';
+  return`<div class="card"><div class="wk-head"><h3>Mon classement final · ${o.length}/${N}</h3>${saveLine()}</div><p class="muted">${help}</p></div>
+    <div class="two final">
       ${edit?`<div class="card"><h3>À placer · ${pool.length}</h3>
-        ${pool.length?`<div class="pool">${pool.map(id=>`<button class="chip" data-act="add" data-id="${id}">${av(id)}<span class="nm">${esc(C[id].name)}</span></button>`).join('')}</div>`:'<p class="empty">Tous les élèves sont placés. Réorganise-les avec les flèches.</p>'}</div>`:''}
+        <div class="pool dropzone" id="poolList">${pool.map(id=>`<button class="chip drag" data-act="add" data-id="${id}">${av(id)}<span class="nm">${esc(C[id].name)}</span></button>`).join('')}</div>
+        ${pool.length?'':'<p class="empty">Tous les élèves sont placés.</p>'}</div>`:''}
+      <div class="card"><h3>Mon classement</h3><div class="rank dropzone" id="rankList">${rows}</div>
+        ${rows?'':'<p class="empty">Glisse ici ton vainqueur pour commencer.</p>'}</div>
     </div>`;
+}
+let sortables=[];
+function initDrag(){
+  sortables.forEach(x=>{try{x.destroy();}catch(e){}});sortables=[];
+  const rank=$('#rankList'),pool=$('#poolList');
+  if(!rank||!pool||!window.Sortable)return;
+  const opts={group:'final',animation:150,delay:120,delayOnTouchOnly:true,touchStartThreshold:5,
+    draggable:'.drag',filter:'.rmx',preventOnFilter:false,ghostClass:'drag-ghost',chosenClass:'drag-chosen',
+    scroll:true,scrollSensitivity:90,scrollSpeed:14,bubbleScroll:true,
+    onStart(){S.dragging=true;document.body.classList.add('dragging');},
+    onEnd(){S.dragging=false;document.body.classList.remove('dragging');
+      const next=cleanOrder([...rank.children].map(el=>el.dataset.id));
+      if(next.join()!==cleanOrder(S.me.order).join()){S.me.order=next;queueMe();}else render();}};
+  sortables=[Sortable.create(rank,opts),Sortable.create(pool,{...opts,sort:false})];
 }
 function vMine(){
   const seg=[['week','Cette semaine'],['final','Pronostic final']].map(([k,l])=>`<button class="seg${S.sub===k?' on':''}" data-act="sub" data-id="${k}" aria-pressed="${S.sub===k}">${l}</button>`).join('');
@@ -500,14 +546,17 @@ function vOrga(){
 }
 
 function render(){
+  if(S.dragging){S.renderLater=true;return;}
+  S.renderLater=false;
   const sc=document.querySelector('.bracket-scroll'),left=sc?sc.scrollLeft:0;
-  const act=document.activeElement,keep=act&&act.id==='pname'?{v:act.value,s:act.selectionStart}:null;
+  const act=document.activeElement,keep=act&&['pname','pcode'].includes(act.id)?{id:act.id,s:act.selectionStart}:null;
   if(S.tab==='orga'&&!S.orga)S.tab='select';
   renderHead();
   const v={select:vSelect,bracket:vBracket,mine:vMine,board:vBoard,orga:vOrga}[S.tab]||vSelect;
   $('#view').innerHTML=v();
   const sc2=document.querySelector('.bracket-scroll');if(sc2)sc2.scrollLeft=left;
-  if(keep){const i=$('#pname');if(i){i.value=keep.v;i.focus();try{i.setSelectionRange(keep.s,keep.s);}catch(e){}}}
+  if(keep){const i=document.getElementById(keep.id);if(i){i.focus();try{i.setSelectionRange(keep.s,keep.s);}catch(e){}}}
+  initDrag();
   $('#orga-link').hidden=S.orga;
 }
 
@@ -527,9 +576,41 @@ async function saveName(){
   if(!name){toast('Écris un pseudo.');if(i)i.focus();return;}
   if(!fb||!S.uid){toast('Connexion en cours, réessaie dans un instant.');return;}
   S.me.name=name;S.nameEdit=false;S.meDirty=true;render();
-  try{await fb.fs.setDoc(fb.fs.doc(fb.db,'players',S.uid),{name,order:cleanOrder(S.me.order),updatedAt:fb.fs.serverTimestamp()});toast('Bienvenue '+name+' !');}
+  try{await fb.fs.setDoc(fb.fs.doc(fb.db,'players',S.uid),{name,order:cleanOrder(S.me.order),updatedAt:fb.fs.serverTimestamp()});toast('Pseudo mis à jour.');}
   catch(e){toast('Pseudo non enregistré ('+errText(e)+').');}
   finally{S.meDirty=false;syncMe();render();}
+}
+const BADLOGIN=['auth/invalid-credential','auth/user-not-found','auth/wrong-password','auth/invalid-login-credentials'];
+async function join(){
+  const ni=$('#pname'),ci=$('#pcode'),name=(ni?ni.value:'').trim().slice(0,40),code=(ci?ci.value:'').trim(),slug=loginSlug(name);
+  if(!slug){toast('Écris un pseudo avec au moins une lettre ou un chiffre.');if(ni)ni.focus();return;}
+  if(!/^\d{4,8}$/.test(code)){toast('Le code doit faire 4 à 8 chiffres.');if(ci)ci.focus();return;}
+  if(!fb||!fb.auth){toast('Connexion en cours, réessaie dans un instant.');return;}
+  const A=fb.authM,email=slug+'@pronos-star-ac.firebaseapp.com',pw='sa14-'+code;
+  S.busy=true;render();
+  let created=false;
+  try{
+    try{await A.signInWithEmailAndPassword(fb.auth,email,pw);}
+    catch(e){
+      if(!BADLOGIN.includes(e&&e.code))throw e;
+      const cur=fb.auth.currentUser,cred=A.EmailAuthProvider.credential(email,pw);
+      try{if(cur&&cur.isAnonymous)await A.linkWithCredential(cur,cred);else await A.createUserWithEmailAndPassword(fb.auth,email,pw);created=true;}
+      catch(e2){if(e2&&e2.code==='auth/email-already-in-use'){toast('Ce pseudo est déjà pris et le code ne correspond pas.');return;}throw e2;}
+    }
+    const u=fb.auth.currentUser;S.uid=u.uid;S.anon=false;S.login=slug;
+    const snap=await fb.fs.getDoc(fb.fs.doc(fb.db,'players',u.uid));
+    if(!snap.exists())await fb.fs.setDoc(fb.fs.doc(fb.db,'players',u.uid),{name,order:[],updatedAt:fb.fs.serverTimestamp()});
+    S.meDirty=false;S.form={name:null,code:''};syncMe();
+    toast(created?`Bienvenue ${name} ! Retiens ton code.`:`Content de te revoir ${snap.exists()?snap.data().name:name} !`);
+  }catch(e){
+    const c=e&&e.code||'';
+    toast(c==='auth/operation-not-allowed'?'La connexion par code n’est pas encore activée par l’organisateur.':c==='auth/too-many-requests'?'Trop d’essais. Patiente quelques minutes.':'Connexion impossible ('+errText(e)+').');
+  }finally{S.busy=false;render();}
+}
+async function logout(){
+  if(!fb)return;S.me={name:'',order:[]};S.nameEdit=false;
+  try{await fb.authM.signOut(fb.auth);await fb.authM.signInAnonymously(fb.auth);}catch(e){toast('Déconnexion impossible ('+errText(e)+').');}
+  render();
 }
 async function savePick(field,id){
   const n=curWeek(S.season);
@@ -539,7 +620,7 @@ async function savePick(field,id){
   const next={uid:S.uid,week:n,elim:cur.elim||null,immune:cur.immune||null};next[field]=cur[field]===id?null:id;
   S.picks={...S.picks,[key]:next};render();
   try{await fb.fs.setDoc(fb.fs.doc(fb.db,'picks',key),{...next,updatedAt:fb.fs.serverTimestamp()});
-    toast(next[field]?`Enregistré : ${C[id].name} ${field==='elim'?'éliminé':'immunisé'}`:'Choix retiré');}
+    toast(next[field]?`Enregistré : ${C[id].name} ${field==='elim'?'éliminé':'immunisé'}${E(id)}`:'Choix retiré');}
   catch(e){toast(errText(e)==='refusé'?'Trop tard : les choix de cette semaine sont fermés.':'Non enregistré ('+errText(e)+').');}
 }
 function seasonDoc(s){
@@ -559,7 +640,10 @@ function editWeek(n,fn){saveSeason(s=>{const k=String(n);s.weeks[k]=Object.assig
 function enterOrga(){S.orga=true;ls.set('sa14-orga','1');S.tab='orga';ls.set('sa14-tab','orga');
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0);}
 window.addEventListener('hashchange',()=>{if(location.hash==='#orga')enterOrga();});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='pname'){e.preventDefault();saveName();}});
+document.addEventListener('input',e=>{if(e.target.id==='pname'&&$('#pcode'))S.form.name=e.target.value;else if(e.target.id==='pcode')S.form.code=e.target.value.replace(/\D/g,'');});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;
+  if(e.target.id==='pcode'||(e.target.id==='pname'&&$('#pcode'))){e.preventDefault();join();}
+  else if(e.target.id==='pname'){e.preventDefault();saveName();}});
 document.addEventListener('click',e=>{
   const t=e.target.closest('[data-act]');if(!t||t.disabled)return;
   const a=t.dataset.act,id=t.dataset.id,o=cleanOrder(S.me.order),s=S.season;
@@ -571,6 +655,8 @@ document.addEventListener('click',e=>{
   else if(a==='focus'){S.focus=S.focus===id?null:id;render();}
   else if(a==='editName'){S.nameEdit=true;render();const i=$('#pname');if(i)i.focus();}
   else if(a==='saveName')saveName();
+  else if(a==='join')join();
+  else if(a==='logout')logout();
   else if(a==='pick')savePick(t.dataset.f,id);
   else if(a==='add'){if(editFinal()){S.me.order=o.concat(id);queueMe();}}
   else if(a==='rm'){if(editFinal()){S.me.order=o.filter(x=>x!==id);queueMe();}}
@@ -601,13 +687,19 @@ async function initFirebase(){
   try{
     const [appM,authM,fs]=await Promise.all([import(FB+'firebase-app.js'),import(FB+'firebase-auth.js'),import(FB+'firebase-firestore.js')]);
     const app=appM.initializeApp(firebaseConfig),auth=authM.getAuth(app),db=fs.getFirestore(app);
-    fb={db,fs};
+    fb={db,fs,auth,authM};
     const fail=what=>err=>{S.note=`Lecture ${what} impossible (${errText(err)}).`;render();};
     fs.onSnapshot(fs.doc(db,'season','main'),snap=>{S.seasonExists=snap.exists();S.season=normSeason(snap.exists()?snap.data():null);S.conn='ok';render();},fail('de la saison'));
     fs.onSnapshot(fs.collection(db,'players'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.name==='string'&&x.name.trim())p[d.id]={name:x.name.trim().slice(0,40),order:cleanOrder(x.order)};});S.players=p;syncMe();render();},fail('des joueurs'));
     fs.onSnapshot(fs.collection(db,'picks'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&Number.isInteger(x.week))p[x.week+'_'+x.uid]={uid:x.uid,week:x.week,elim:C[x.elim]?x.elim:null,immune:C[x.immune]?x.immune:null};});S.picks=p;render();},fail('des choix'));
-    authM.onAuthStateChanged(auth,u=>{S.uid=u?u.uid:null;syncMe();render();});
-    await authM.signInAnonymously(auth);
+    let first=true;
+    authM.onAuthStateChanged(auth,u=>{
+      S.uid=u?u.uid:null;S.anon=!!(u&&u.isAnonymous);
+      S.login=u&&u.email?u.email.split('@')[0]:'';
+      S.meDirty=false;S.me={name:'',order:[]};syncMe();render();
+      if(!u&&first){first=false;authM.signInAnonymously(auth).catch(e=>{S.conn='err';S.note='Connexion à la base de données impossible ('+errText(e)+'). Recharge la page.';render();});}
+      first=false;
+    });
   }catch(e){S.conn='err';S.note='Connexion à la base de données impossible ('+errText(e)+'). Recharge la page.';render();}
 }
 if(location.hash==='#orga')enterOrga();

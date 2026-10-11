@@ -8,7 +8,7 @@ En ligne : https://shadaos.github.io/staracc/
 
 - Le site est hébergé par **GitHub Pages**.
 - Les pronos sont enregistrés dans **Firebase Firestore**, une base de données gratuite de Google.
-- Chaque joueur est reconnu automatiquement par son navigateur (connexion anonyme), sans compte ni mot de passe. Il doit donc toujours jouer depuis le même téléphone ou ordinateur.
+- Chaque joueur choisit un **pseudo** et un **code de 4 à 8 chiffres**. Avec les mêmes pseudo et code, il retrouve ses pronos sur n'importe quel appareil. Aucune adresse e-mail n'est demandée.
 
 ## Contenu du dépôt
 
@@ -24,7 +24,7 @@ En ligne : https://shadaos.github.io/staracc/
 1. Va sur https://console.firebase.google.com et connecte-toi avec un compte Google. Clique sur **Créer un projet**, nomme-le (par exemple `pronos-star-ac`), puis désactive Google Analytics.
 2. Sur l'accueil du projet, clique sur l'icône **Web** (`</>`). Nomme l'application, puis clique sur **Enregistrer l'application**. Ne coche pas « Firebase Hosting ». Firebase t'affiche un bloc `const firebaseConfig = { ... }` : copie-le.
 3. Colle ce bloc dans `firebase-config.js` à la place de `null` (ou envoie-le à Claude, qui le fera).
-4. Dans le menu de gauche, va dans **Build → Authentication → Commencer**, onglet **Sign-in method**. Active **Anonyme**, puis clique sur **Enregistrer**.
+4. Dans le menu de gauche, va dans **Build → Authentication → Commencer**, onglet **Sign-in method**. Active **Anonyme**, puis **Adresse e-mail/Mot de passe** (sans le lien e-mail), et enregistre.
 5. Toujours dans **Authentication**, ouvre **Paramètres → Domaines autorisés**, clique sur **Ajouter un domaine** et ajoute `shadaos.github.io`.
 6. Va dans **Build → Firestore Database → Créer une base de données**. Choisis un emplacement en Europe (par exemple `eur3`), puis le **mode production**.
 7. Ouvre le site, puis clique sur **Espace organisateur** tout en bas. Copie **Ton identifiant**.
@@ -35,9 +35,9 @@ Une fois ces étapes faites, tes amis peuvent jouer.
 
 ## Pendant la saison
 
-**Les joueurs**, dans l'onglet *Mon prono* :
+**Les joueurs**, dans l'onglet *Mon prono* (après avoir saisi pseudo et code) :
 - **Cette semaine** : ils choisissent qui sera éliminé (parmi les nominés) et qui sera immunisé. C'est enregistré dès qu'ils touchent un élève, et fermé automatiquement le samedi à 23h30.
-- **Pronostic final** : ils classent les 17 élèves. C'est enregistré automatiquement, jusqu'à ce que tu verrouilles les classements.
+- **Pronostic final** : ils classent les 17 élèves par glisser-déposer. C'est enregistré automatiquement, jusqu'à ce que tu verrouilles les classements.
 
 **Toi**, dans l'*Espace organisateur* :
 - le mercredi, saisis les **nominés** ;
@@ -72,3 +72,7 @@ Les points du classement final ne comptent que si le classement est complet (17 
 ## Changer une photo
 
 Remplace le fichier dans `photos/` en gardant le même nom. Le nom du fichier est le prénom de l'élève en minuscules et sans accent : `amel`, `antoine`, `brieuc`, `cameron`, `elija`, `felix`, `isabella`, `khalil`, `kylian`, `leeloo`, `maud`, `melina`, `morgan`, `noemie`, `tracy`, `ydriss`, `zoe`.
+
+## Droits d'organisateur
+
+Tes droits sont liés à l'identifiant affiché dans l'Espace organisateur. Pour les garder sur tous tes appareils, saisis ton pseudo et ton code **d'abord dans le navigateur où tu as copié cet identifiant** : le site y ajoute le code sans changer l'identifiant. Ensuite, connecte-toi avec ce même pseudo et ce même code sur tes autres appareils.
