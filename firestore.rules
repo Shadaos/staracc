@@ -9,6 +9,7 @@ service cloud.firestore {
 
     function signedIn() { return request.auth != null; }
     function isAdmin() { return signedIn() && request.auth.token.email == 'aurelien@pronos-star-ac.firebaseapp.com'; }
+    function isPlayer() { return signedIn() && exists(/databases/$(database)/documents/players/$(request.auth.uid)); }
     function season() { return get(/databases/$(database)/documents/season/main).data; }
 
     // Résultats de la saison : lisibles par tous, modifiables par l'organisateur uniquement.
@@ -44,6 +45,39 @@ service cloud.firestore {
         && request.resource.data.week is int
         && pickId == string(request.resource.data.week) + '_' + request.auth.uid
         && request.time < season().locks[string(request.resource.data.week)];
+    }
+
+
+    // Réactions emoji aux quotidiennes : un document par joueur et par quotidienne.
+    match /reactions/{rid} {
+      allow read: if true;
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create, update: if isPlayer()
+        && request.resource.data.keys().hasOnly(['uid', 'recap', 'e'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.recap is string
+        && request.resource.data.recap.size() == 10
+        && rid == request.resource.data.recap + '_' + request.auth.uid
+        && request.resource.data.e is list
+        && request.resource.data.e.size() <= 6
+        && request.resource.data.e.hasOnly(['love', 'lol', 'wow', 'sad', 'fire', 'clap']);
+    }
+
+    // Commentaires sur les quotidiennes : on publie et on supprime les siens, l'organisateur supprime tout.
+    match /comments/{cid} {
+      allow read: if true;
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update: if false;
+      allow create: if isPlayer()
+        && request.resource.data.keys().hasOnly(['uid', 'recap', 'text', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && cid.matches(request.auth.uid + '_[0-9]+')
+        && request.resource.data.recap is string
+        && request.resource.data.recap.size() == 10
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 500
+        && request.resource.data.at == request.time;
     }
   }
 }

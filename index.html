@@ -288,6 +288,30 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .strow .status{margin-top:0!important}
 .fighter .btn.tf1{padding:4px 7px;font-size:10.5px;box-shadow:none}
 .blockmsg p:first-child{color:var(--text);line-height:1.5}
+/* quotidiennes */
+.tabs{scrollbar-width:thin;scrollbar-color:var(--gold) transparent;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{height:3px}.tabs::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
+.tabs.more{-webkit-mask-image:linear-gradient(90deg,#000 80%,transparent);mask-image:linear-gradient(90deg,#000 80%,transparent)}
+.tab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-left:5px;vertical-align:middle;box-shadow:0 0 6px var(--gold)}
+.dweek{margin:6px 0 -6px;font:400 22px/1 var(--f-display);letter-spacing:.04em;text-transform:uppercase;color:var(--gold2)}
+.recap h3{margin:0;font-size:19px;line-height:1.25}
+.rc-h{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.rc-date{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rc-pts{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;line-height:1.45}
+.rc-el{display:flex;flex-wrap:wrap;gap:6px}.rc-el .chip .av{width:24px}
+.rc-src{margin:0;font-size:13px;color:var(--muted)}.rc-src a{color:var(--muted)}
+.rc-react{display:flex;flex-wrap:wrap;gap:6px}
+.rx{display:inline-flex;align-items:center;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:16px;color:var(--text);min-height:34px}
+.rx b{font-size:13px;font-weight:700;color:var(--muted)}
+.rx[aria-pressed=true]{border-color:var(--gold);background:rgba(248,201,74,.14)}.rx[aria-pressed=true] b{color:var(--gold2)}
+.cms{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+.cm{display:flex;flex-direction:column;gap:2px}.cm .who{font-size:13px;color:var(--muted)}.cm .who b{color:var(--text)}
+.cm p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.4}
+.cm .del{margin-left:8px;font-size:12px}
+.cmform{display:flex;gap:8px;align-items:flex-end}
+.cmform textarea{flex:1;min-width:0;resize:vertical;min-height:44px;background:#0e0206;color:var(--text);border:1px solid var(--line);border-radius:3px;padding:8px 10px;font:inherit;font-size:16px}
+.disclaim{font-size:14px}
+.recap.hid{opacity:.55}
 </style>
 </head>
 <body>
@@ -401,13 +425,43 @@ function toast(msg){let t=$('#toast');if(!t){t=document.createElement('div');t.i
   t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>{t.hidden=true;},3800);}
 const BLOCK_MSG='Connexion impossible : un bloqueur de pubs (uBlock, AdGuard, Brave…) empêche le site de joindre sa base de données. Il n’y a pas de pub à bloquer sur ce site : désactive ton bloqueur pour ce site, puis recharge la page. Si tu n’as pas de bloqueur, vérifie ta connexion internet.';
 function isNetErr(e){const c=e&&e.code||'';return c==='auth/network-request-failed'||(!c&&e instanceof TypeError);}
+/* ===================== quotidiennes ===================== */
+const REACT=[['love','😍'],['lol','😂'],['wow','😱'],['sad','😢'],['fire','🔥'],['clap','👏']];
+const RCODES=REACT.map(r=>r[0]);
+Object.assign(S,{recaps:[],recapLoaded:false,recapErr:false,recapAt:0,recapHidden:[],reacts:{},comments:[],openCm:new Set(),drafts:{},cmDelArm:null});
+function cleanRecap(x){
+  if(!x||typeof x.id!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(x.id)||typeof x.title!=='string')return null;
+  const str=v=>typeof v==='string'&&v.trim()?v.trim():null;
+  return{id:x.id,title:x.title.trim().slice(0,140),tag:x.tag==='nominations'?'nominations':null,
+    points:(Array.isArray(x.points)?x.points:[]).map(str).filter(Boolean).slice(0,8).map(t=>t.slice(0,400)),
+    eleves:cleanOrder(Array.isArray(x.eleves)?x.eleves:[]),
+    sources:(Array.isArray(x.sources)?x.sources:[]).filter(o=>o&&str(o.name)&&typeof o.url==='string'&&/^https:\/\//.test(o.url)).slice(0,4)};}
+async function loadRecaps(force){
+  if(!force&&Date.now()-S.recapAt<5*60000)return;S.recapAt=Date.now();
+  try{const r=await fetch('recaps.json?t='+Math.floor(Date.now()/60000),{cache:'no-store'});if(!r.ok)throw new Error(r.status);
+    const j=await r.json();const seen={};
+    S.recaps=(Array.isArray(j.items)?j.items:[]).map(cleanRecap).filter(x=>x&&!seen[x.id]&&(seen[x.id]=1)).sort((a,b)=>b.id.localeCompare(a.id));
+    S.recapErr=false;}catch(e){S.recapErr=true;}
+  S.recapLoaded=true;render();}
+function recapDate(id){const[y,m,d]=id.split('-').map(Number);return{y,m:m-1,d};}
+function recapWeek(id){const{y,m,d}=recapDate(id);return Math.max(0,Math.ceil((Date.UTC(y,m,d)-Date.UTC(LAUNCH[0],LAUNCH[1],LAUNCH[2]))/864e5/7));}
+function recapLabel(id){const{y,m,d}=recapDate(id);const t=new Date(Date.UTC(y,m,d,12)).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'});return t.charAt(0).toUpperCase()+t.slice(1);}
+// anti-spoiler : la quotidienne du dimanche revient sur le prime du samedi ; masquée jusqu'à dimanche minuit
+function recapSpoiler(id){if(!S.noSpoil)return false;const{y,m,d}=recapDate(id);if(new Date(Date.UTC(y,m,d)).getUTCDay()!==0)return false;
+  return Date.now()<Date.UTC(y,m,d+1,0-parisOffset(y,m,d+1),0);}
+function newestRecap(){const r=S.recaps.find(x=>!S.recapHidden.includes(x.id)&&!recapSpoiler(x.id));return r?r.id:'';}
+function hasNewRecap(){const n=newestRecap();return!!n&&n>(ls.get('sa14-recapSeen')||'');}
+function reactCounts(rid){const c={},mine=new Set();Object.values(S.reacts).forEach(x=>{if(x.recap!==rid)return;x.e.forEach(k=>{c[k]=(c[k]||0)+1;});if(x.uid===S.uid)x.e.forEach(k=>mine.add(k));});return{c,mine};}
+function cmTime(c){const ms=c.at||+c.id.split('_').pop();if(!ms)return'';const d=new Date(ms),now=Date.now(),diff=(now-ms)/60000;
+  if(diff<1)return'à l’instant';if(diff<60)return'il y a '+Math.floor(diff)+' min';
+  return d.toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'});}
 function errText(e){const c=e&&e.code||'';
   if(c.includes('permission-denied'))return'refusé';if(c.includes('unavailable'))return'hors ligne';return c||'erreur';}
 
 /* ===================== vues ===================== */
 function renderHead(){
   const s=S.season,out=outOrder(s).length,alive=N-out,cur=curWeek(s),win=winnerId(s),np=Object.keys(S.players).length;
-  const tabs=[['select','Sélection'],['bracket','Tableau'],['mine','Mon prono'],['board','Classement']];
+  const tabs=[['select','Sélection'],['bracket','Tableau'],['mine','Mon prono'],['board','Classement'],['daily','Quotidiennes'+(S.tab!=='daily'&&hasNewRecap()?'<span class="dot" aria-label="nouveau"></span>':'')]];
   if(isOrga())tabs.push(['orga','Orga']);
   let banner=S.note;
   if(!banner&&S.conn==='noconfig')banner='Le site n’est pas encore relié à sa base de données : les pronos ne peuvent pas être enregistrés pour l’instant.';
@@ -652,6 +706,43 @@ function vPlayer(uid){
 }
 
 /* ---------- organisateur ---------- */
+function vDaily(){
+  if(!S.recapLoaded){loadRecaps();return`<h2>Les quotidiennes</h2><div class="card"><p class="muted">Chargement…</p></div>`;}
+  const orga=isOrga();
+  const list=S.recaps.filter(r=>(orga||!S.recapHidden.includes(r.id))&&!recapSpoiler(r.id));
+  const n=newestRecap();if(n&&n>(ls.get('sa14-recapSeen')||''))ls.set('sa14-recapSeen',n);
+  const spoilN=S.recaps.filter(r=>recapSpoiler(r.id)&&!S.recapHidden.includes(r.id)).length;
+  let html=`<h2>Les quotidiennes</h2>
+    <p class="muted disclaim">Un résumé chaque soir, rédigé automatiquement par Claude à partir des articles de presse publiés après la diffusion. Il peut contenir des erreurs ou des oublis : les sources sont indiquées sous chaque résumé.</p>
+    ${spoilN?`<p class="note spoil">Anti-spoiler : le résumé de la quotidienne du dimanche est masqué jusqu’à dimanche minuit.</p>`:''}
+    ${S.recapErr?`<p class="note">Impossible de charger les résumés pour l’instant. <button class="linkbtn" data-act="recapReload">Réessayer</button></p>`:''}`;
+  if(!list.length)return html+`<div class="card"><p class="empty">Pas encore de résumé. Le premier arrive après la prochaine quotidienne.</p></div>`;
+  let wkCur=null;
+  list.forEach(r=>{const w=recapWeek(r.id);
+    if(w!==wkCur){wkCur=w;html+=`<h3 class="dweek">${w?'Semaine '+w:'Lancement'}</h3>`;}
+    html+=recapCard(r,orga);});
+  return html;
+}
+function recapCard(r,orga){
+  const hid=S.recapHidden.includes(r.id),reg=registered()&&!S.anon;
+  const{c,mine}=reactCounts(r.id);
+  const cms=S.comments.filter(x=>x.recap===r.id),open=S.openCm.has(r.id);
+  const rx=REACT.map(([k,e])=>`<button class="rx" data-act="react" data-id="${r.id}" data-k="${k}" aria-pressed="${mine.has(k)}" aria-label="Réagir ${e}">${e}${c[k]?`<b>${c[k]}</b>`:''}</button>`).join('');
+  const cmList=cms.map(x=>{const p=S.players[x.uid],own=x.uid===S.uid,canDel=own||orga;
+    return`<div class="cm"><span class="who"><b>${esc(p?p.name:'Ancien joueur')}</b> · ${esc(cmTime(x))}${canDel?`<button class="linkbtn del" data-act="cmDel" data-id="${esc(x.id)}">${S.cmDelArm===x.id?'Confirmer la suppression':'Supprimer'}</button>`:''}</span><p>${esc(x.text)}</p></div>`;}).join('');
+  const form=reg?`<div class="cmform"><textarea id="cm-${r.id}" maxlength="500" rows="2" placeholder="Ton commentaire…" aria-label="Ton commentaire">${esc(S.drafts[r.id]||'')}</textarea><button class="btn" data-act="cmSend" data-id="${r.id}">Envoyer</button></div>`:'';
+  return`<article class="card recap${hid?' hid':''}" id="rc-${r.id}">
+    <div class="rc-h"><span class="rc-date">${esc(recapLabel(r.id))}</span>${r.tag==='nominations'?'<span class="pill">Nominations</span>':''}${hid?'<span class="pill">Masqué aux joueurs</span>':''}</div>
+    <h3>${esc(r.title)}</h3>
+    ${r.points.length?`<ul class="rc-pts">${r.points.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}
+    ${r.eleves.length?`<div class="rc-el">${r.eleves.map(id=>`<button class="chip" data-act="goSel" data-id="${id}">${av(id)}<span class="nm">${esc(C[id].name)}</span></button>`).join('')}</div>`:''}
+    ${r.sources.length?`<p class="rc-src">D’après ${r.sources.map(o=>`<a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(o.name)}</a>`).join(', ')}</p>`:''}
+    <div class="rc-react">${rx}</div>
+    <div class="row"><button class="linkbtn" data-act="cmToggle" data-id="${r.id}" aria-expanded="${open}">💬 ${cms.length?cms.length+' commentaire'+(cms.length>1?'s':''):'Commenter'}</button>
+      ${orga?`<button class="btn ghost" data-act="recapHide" data-id="${r.id}">${hid?'Réafficher':'Masquer'}</button>`:''}</div>
+    ${open?`<div class="cms">${cmList||'<p class="muted">Aucun commentaire pour l’instant.</p>'}${form}</div>`:''}
+  </article>`;
+}
 function vOrga(){
   if(S.conn==='noconfig')return`<h2>Espace organisateur</h2><div class="card"><h3>Relier le site à Firebase</h3>
     <p>Le fichier <code>firebase-config.js</code> du dépôt est encore vide. Suis les étapes du README, puis colle la configuration Firebase dans ce fichier.</p></div>`;
@@ -694,20 +785,27 @@ function render(){
   if(S.dragging){S.renderLater=true;return;}
   S.renderLater=false;
   const sc=document.querySelector('.bracket-scroll'),left=sc?sc.scrollLeft:0;
-  const act=document.activeElement,keep=act&&['pname','pcode'].includes(act.id)?{id:act.id,s:act.selectionStart}:null;
+  const act=document.activeElement,keep=act&&(['pname','pcode'].includes(act.id)||/^cm-/.test(act.id))?{id:act.id,s:act.selectionStart}:null;
+  const tb=document.querySelector('.tabs'),tabLeft=tb?tb.scrollLeft:0;
   if(S.tab==='orga'&&!isOrga())S.tab='select';
   const gate=needGate();
   document.body.classList.toggle('gated',gate);
   if(gate){$('#head').innerHTML='';$('#view').innerHTML=vGate();}
   else{renderHead();
-  const v={select:vSelect,bracket:vBracket,mine:vMine,board:vBoard,orga:vOrga}[S.tab]||vSelect;
+  const v={select:vSelect,bracket:vBracket,mine:vMine,board:vBoard,daily:vDaily,orga:vOrga}[S.tab]||vSelect;
   $('#view').innerHTML=v();}
   const sc2=document.querySelector('.bracket-scroll');if(sc2)sc2.scrollLeft=left;
+  tabsScroll(tabLeft);
   if(keep){const i=document.getElementById(keep.id);if(i){i.focus();try{i.setSelectionRange(keep.s,keep.s);}catch(e){}}}
   $('#orga-link').hidden=!isOrga()||S.tab==='orga';
   initDrag();
   setHeadH();
 }
+function tabsScroll(left){const tb=document.querySelector('.tabs');if(!tb)return;tb.scrollLeft=left;
+  if(S.scrollTab){S.scrollTab=false;const a=tb.querySelector('[aria-selected=true]');if(a){const l=a.offsetLeft-tb.offsetLeft,r=l+a.offsetWidth;if(l<tb.scrollLeft||r>tb.scrollLeft+tb.clientWidth)tb.scrollLeft=Math.max(0,r-tb.clientWidth+24);}}
+  fadeTabs(tb);}
+function fadeTabs(tb){tb.classList.toggle('more',tb.scrollLeft+tb.clientWidth<tb.scrollWidth-4);}
+document.addEventListener('scroll',e=>{if(e.target.classList&&e.target.classList.contains('tabs'))fadeTabs(e.target);},true);
 function setHeadH(){const t=$('#head');document.documentElement.style.setProperty('--headH',(t&&t.offsetHeight?t.offsetHeight:0)+'px');}
 window.addEventListener('resize',setHeadH);
 
@@ -778,6 +876,35 @@ function seasonDoc(s){
   const locks={};Object.keys(s.locks).forEach(k=>{locks[k]=fb.fs.Timestamp.fromMillis(s.locks[k]);});
   return{rankingOpen:s.rankingOpen,weeks:s.weeks,locks,updatedAt:fb.fs.serverTimestamp()};
 }
+function needPlayer(){if(!fb){toast('Base de données indisponible.');return false;}if(!registered()||S.anon){toast('Connecte-toi avec ton pseudo pour réagir.');return false;}return true;}
+async function react(rid,k){
+  if(!RCODES.includes(k)||!needPlayer())return;
+  const key=rid+'_'+S.uid,cur=S.reacts[key]?S.reacts[key].e.slice():[],prev=S.reacts[key];
+  const e=cur.includes(k)?cur.filter(x=>x!==k):cur.concat(k);
+  S.reacts[key]={uid:S.uid,recap:rid,e};render();
+  try{const ref=fb.fs.doc(fb.db,'reactions',key);
+    if(e.length)await fb.fs.setDoc(ref,{uid:S.uid,recap:rid,e});else await fb.fs.deleteDoc(ref);}
+  catch(err){if(prev)S.reacts[key]=prev;else delete S.reacts[key];render();toast('Réaction non enregistrée ('+errText(err)+').');}
+}
+async function sendComment(rid){
+  if(!needPlayer())return;
+  const txt=(S.drafts[rid]||'').trim().slice(0,500);if(!txt){toast('Écris quelque chose avant d’envoyer.');return;}
+  const id=S.uid+'_'+Date.now();
+  try{await fb.fs.setDoc(fb.fs.doc(fb.db,'comments',id),{uid:S.uid,recap:rid,text:txt,at:fb.fs.serverTimestamp()});S.drafts[rid]='';render();}
+  catch(err){toast('Commentaire non envoyé ('+errText(err)+').');}
+}
+async function delComment(cid){
+  if(S.cmDelArm!==cid){S.cmDelArm=cid;render();return;}
+  S.cmDelArm=null;
+  try{await fb.fs.deleteDoc(fb.fs.doc(fb.db,'comments',cid));}catch(err){toast('Suppression impossible ('+errText(err)+').');render();}
+}
+async function toggleRecapHidden(rid){
+  if(!isOrga()||!fb)return;
+  const prev=S.recapHidden,next=prev.includes(rid)?prev.filter(x=>x!==rid):prev.concat(rid);
+  S.recapHidden=next;render();
+  try{await fb.fs.setDoc(fb.fs.doc(fb.db,'season','recaps'),{hidden:next});}
+  catch(err){S.recapHidden=prev;render();toast('Non enregistré ('+errText(err)+').');}
+}
 async function saveSeason(mut){
   if(!fb)return;
   const next=JSON.parse(JSON.stringify(S.real));mut(next);
@@ -794,7 +921,7 @@ window.addEventListener('hashchange',()=>{if(location.hash==='#orga')enterOrga()
 function setNoSpoil(v){S.noSpoil=v;ls.set('sa14-nospoil',v?'1':'0');S.season=viewSeason();render();}
 document.addEventListener('change',e=>{if(e.target.id==='nospoil')setNoSpoil(e.target.checked);
   else if(e.target.id==='validate'){if(cleanOrder(S.me.order).length!==N){e.target.checked=false;return;}S.me.validated=e.target.checked;queueMe();toast(S.me.validated?'Classement validé ✓':'Classement dévalidé.');}});
-document.addEventListener('input',e=>{if(e.target.id==='pname'&&$('#pcode'))S.form.name=e.target.value;else if(e.target.id==='pcode')S.form.code=e.target.value.replace(/\D/g,'');});
+document.addEventListener('input',e=>{if(/^cm-/.test(e.target.id)){S.drafts[e.target.id.slice(3)]=e.target.value;return;}if(e.target.id==='pname'&&$('#pcode'))S.form.name=e.target.value;else if(e.target.id==='pcode')S.form.code=e.target.value.replace(/\D/g,'');});
 document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;
   if(e.target.id==='pcode'||(e.target.id==='pname'&&$('#pcode'))){e.preventDefault();join();}
   else if(e.target.id==='pname'){e.preventDefault();saveName();}});
@@ -803,7 +930,14 @@ document.addEventListener('click',e=>{
   const a=t.dataset.act,id=t.dataset.id,o=cleanOrder(S.me.order),s=S.tab==='orga'?S.real:S.season;
   const editFinal=()=>{if(!registered()){S.tab='mine';render();toast('Choisis d’abord ton pseudo.');return false;}if(!s.rankingOpen){toast('Les classements finaux sont verrouillés.');return false;}return true;};
   if(a==='reload'){location.reload();return;}
-  if(a==='tab'){S.viewPlayer=null;S.tab=id;S.pendingOut=null;ls.set('sa14-tab',id);render();window.scrollTo(0,0);}
+  if(a==='tab'){S.viewPlayer=null;S.tab=id;S.pendingOut=null;S.scrollTab=true;ls.set('sa14-tab',id);if(id==='daily')loadRecaps();render();window.scrollTo(0,0);}
+  else if(a==='goSel'){S.sel=id;S.tab='select';S.scrollTab=true;ls.set('sa14-tab','select');render();window.scrollTo(0,0);}
+  else if(a==='recapReload')loadRecaps(true);
+  else if(a==='cmToggle'){S.openCm.has(id)?S.openCm.delete(id):S.openCm.add(id);render();if(S.openCm.has(id)){const t=document.getElementById('cm-'+id);if(t)t.focus({preventScroll:true});}}
+  else if(a==='react')react(id,t.dataset.k);
+  else if(a==='cmSend')sendComment(id);
+  else if(a==='cmDel')delComment(id);
+  else if(a==='recapHide')toggleRecapHidden(id);
   else if(a==='sub'){S.sub=id;ls.set('sa14-sub',id);render();}
   else if(a==='sel'){S.sel=id;render();}
   else if(a==='mode'){S.mode=id;render();}
@@ -854,6 +988,10 @@ async function initFirebase(){
     fs.onSnapshot(fs.doc(db,'season','main'),snap=>{S.snapOk=true;if(S.note===BLOCK_MSG&&S.authReady)S.note='';S.seasonExists=snap.exists();S.real=normSeason(snap.exists()?snap.data():null);S.season=viewSeason();S.conn='ok';render();},fail('de la saison'));
     fs.onSnapshot(fs.collection(db,'players'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.name==='string'&&x.name.trim())p[d.id]={name:x.name.trim().slice(0,40),order:cleanOrder(x.order),validated:x.validated===true};});S.players=p;syncMe();render();},fail('des joueurs'));
     fs.onSnapshot(fs.collection(db,'picks'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&Number.isInteger(x.week))p[x.week+'_'+x.uid]={uid:x.uid,week:x.week,elim:C[x.elim]?x.elim:null,immune:C[x.immune]?x.immune:null};});S.picks=p;render();},fail('des choix'));
+    fs.onSnapshot(fs.doc(db,'season','recaps'),snap=>{const d=snap.exists()?snap.data():{};S.recapHidden=Array.isArray(d.hidden)?d.hidden.filter(x=>typeof x==='string'):[];render();},()=>{});
+    fs.onSnapshot(fs.collection(db,'reactions'),q=>{const r={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&typeof x.recap==='string'&&Array.isArray(x.e))r[d.id]={uid:x.uid,recap:x.recap,e:x.e.filter(k=>RCODES.includes(k))};});S.reacts=r;render();},()=>{});
+    fs.onSnapshot(fs.collection(db,'comments'),q=>{const c=[];q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&typeof x.recap==='string'&&typeof x.text==='string')c.push({id:d.id,uid:x.uid,recap:x.recap,text:x.text.slice(0,500),at:toMs(x.at)});});
+      c.sort((a,b)=>(a.at||+a.id.split('_').pop())-(b.at||+b.id.split('_').pop()));S.comments=c;render();},()=>{});
     let first=true;
     authM.onAuthStateChanged(auth,u=>{
       S.uid=u?u.uid:null;S.anon=!!(u&&u.isAnonymous);if(u)S.authReady=true;
@@ -869,6 +1007,7 @@ async function initFirebase(){
 if(location.hash==='#orga')enterOrga();
 render();
 initFirebase();
+loadRecaps(true);
 </script>
 </body>
 </html>
