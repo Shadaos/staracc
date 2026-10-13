@@ -967,7 +967,7 @@ async function toggleLike(id,k){
   try{const ref=fb.fs.doc(fb.db,'likes',key);
     if(my.up.length||my.down.length)await fb.fs.setDoc(ref,{uid:S.uid,week:n,up:my.up,down:my.down});else await fb.fs.deleteDoc(ref);
     S.save='ok';render();}
-  catch(err){if(prev)S.likes[key]=prev;else delete S.likes[key];S.save=errText(err);render();}
+  catch(err){if(prev)S.likes[key]=prev;else delete S.likes[key];S.save=errText(err);render();toast(errText(err)==='refusé'?'Vote refusé par la base de données (règles Firebase pas à jour ?).':'Vote non enregistré ('+errText(err)+').');}
 }
 async function setLikeAnon(v){
   if(!needPlayer())return;const prev=anonOf(S.uid);S.likePrefs[S.uid]=v;render();
