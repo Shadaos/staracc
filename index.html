@@ -708,7 +708,7 @@ function initDrag(){
       else render();}});
 }
 function vMine(){
-  const seg=[['week','Cette semaine'],['final','Final'],['likes','❤️ / 🍅']].map(([k,l])=>`<button class="seg${S.sub===k?' on':''}" data-act="sub" data-id="${k}" aria-pressed="${S.sub===k}">${l}</button>`).join('');
+  const seg=[['week','Cette semaine'],['likes','❤️ / 🍅'],['final','Final']].map(([k,l])=>`<button class="seg${S.sub===k?' on':''}" data-act="sub" data-id="${k}" aria-pressed="${S.sub===k}">${l}</button>`).join('');
   return`${whoCard()}<div class="seg-bar" role="tablist" aria-label="Type de pronostic">${seg}</div>${S.sub==='final'?vFinal():S.sub==='likes'?vLikes():vWeek()}`;
 }
 
