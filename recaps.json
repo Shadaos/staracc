@@ -1,21 +1,35 @@
 {
-  "updated": "2026-10-13T21:30:00+02:00",
+  "updated": "2026-10-13T23:50:00+02:00",
   "items": [
     {
       "id": "2026-10-13",
-      "title": "Premiers cours de danse : quatre groupes de niveau, Morgan et Zoé devant",
+      "title": "Premiers cours : Morgan et Zoé en tête en danse, Kylian recadré",
       "tag": null,
       "points": [
         "Jonathan Jenvrin fait passer les élèves un par un sur la chorégraphie du prochain prime, puis les répartit en quatre groupes selon ce premier cours.",
-        "Groupe A : Morgan et Zoé. Groupe B : Mélina, Leeloo et Isabella. Groupe C : Félix, Maud, Tracy, Khalil et Amel. Groupe D : Ydriss, Antoine, Elija, Kylian, Cameron, Noémie et Brieuc.",
-        "Ce classement ne vaut que pour ce premier cours de danse, pas pour le niveau général.",
+        "Groupe A : Morgan et Zoé. Groupe B : Mélina, Leeloo et Isabella. Groupe C : Félix, Maud, Tracy, Khalil et Amel. Groupe D : Ydriss, Antoine, Elija, Kylian, Cameron, Noémie et Brieuc. Ce classement ne vaut que pour ce premier cours.",
+        "Kylian se fait reprendre deux fois sur son attitude, par Sofia Morgavi en chant puis par Jonathan Jenvrin en danse.",
         "En chant, Sofia Morgavi demande aux élèves de retravailler les chansons du prime de lancement et de remettre leurs certitudes en question.",
-        "Avant les premières évaluations (thème « Se mettre en valeur »), Noémie confie à Isabella qu’elle est très stressée.",
-        "Annoncé pour le prime de samedi : Ben Mazué invité d’honneur, Adèle Castillon en carte blanche, et Naïka. Mosimann sera exceptionnellement absent."
+        "Premières évaluations sur le thème « Se mettre en valeur » : Kylian choisit All of Me de John Legend, avec Maud au piano. Noémie confie à Isabella qu’elle est très stressée.",
+        "Premières nominations annoncées mercredi soir. Annoncés pour le prime de samedi : Ben Mazué, Adèle Castillon en carte blanche et Naïka. Mosimann sera exceptionnellement absent."
       ],
-      "eleves": ["morgan", "zoe", "noemie", "isabella"],
+      "eleves": [
+        "morgan",
+        "zoe",
+        "kylian",
+        "maud",
+        "noemie",
+        "isabella"
+      ],
       "sources": [
-        { "name": "Série News", "url": "https://www.serie-news.com/tnt/tf1/57212-star-academy-2026-les-invites-du-prime-du-17-octobre-devoiles-une-star-internationale-et-un-artiste-mystere-attendus-2-13-10-2026/" }
+        {
+          "name": "Série News",
+          "url": "https://www.serie-news.com/tnt/tf1/57212-star-academy-2026-les-invites-du-prime-du-17-octobre-devoiles-une-star-internationale-et-un-artiste-mystere-attendus-2-13-10-2026/"
+        },
+        {
+          "name": "Stéphane Larue (d’après Télé-Loisirs)",
+          "url": "https://stephanelarue.com/kylian-star-academy-deux-profs-le-recadrent-avant-les-nominations/"
+        }
       ]
     },
     {
@@ -26,11 +40,24 @@
         "Première quotidienne de la saison : Mosimann réunit les 17 élèves au château de Dammarie-les-Lys.",
         "Il annonce les premières évaluations pour le lendemain : chaque élève choisit une chanson dans une liste d’une vingtaine de titres imposés.",
         "Carte blanche sur la forme : on peut s’accompagner d’un instrument ou d’un autre élève, à condition de montrer sa singularité et de justifier son choix de chanson.",
-        "Il met aussi les élèves en garde sur la maîtrise des paroles."
+        "Il met aussi les élèves en garde sur la maîtrise des paroles.",
+        "Au programme de la journée : répétitions le matin, puis cours de chant avec Sofia Morgavi et de danse avec Jonathan Jenvrin l’après-midi.",
+        "Audience : 1,31 million de téléspectateurs (16,9 %), environ 280 000 de moins que la première quotidienne de 2025."
       ],
       "eleves": [],
       "sources": [
-        { "name": "AlloCiné", "url": "https://www.allocine.fr/tvactu/articles/article-1000226933.html" }
+        {
+          "name": "AlloCiné",
+          "url": "https://www.allocine.fr/tvactu/articles/article-1000226933.html"
+        },
+        {
+          "name": "AlloCiné (emploi du temps)",
+          "url": "https://www.allocine.fr/tvactu/articles/article-1000226929.html"
+        },
+        {
+          "name": "Stéphane Larue (audiences)",
+          "url": "https://stephanelarue.com/audience-quotidienne-star-academy-12-octobre/"
+        }
       ]
     }
   ]
