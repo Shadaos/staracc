@@ -79,5 +79,31 @@ service cloud.firestore {
         && request.resource.data.text.size() <= 500
         && request.resource.data.at == request.time;
     }
+
+    // Cœurs & tomates : jusqu'à 3 de chaque par joueur et par semaine, modifiables jusqu'à dimanche minuit.
+    match /likes/{lid} {
+      allow read: if true;
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid
+            && request.time < season().locks[string(resource.data.week)]);
+      allow create, update: if isPlayer()
+        && request.resource.data.keys().hasOnly(['uid', 'week', 'up', 'down'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.week is int
+        && lid == string(request.resource.data.week) + '_' + request.auth.uid
+        && request.resource.data.up is list && request.resource.data.up.size() <= 3
+        && request.resource.data.down is list && request.resource.data.down.size() <= 3
+        && request.resource.data.up.hasOnly(['amel','antoine','brieuc','cameron','elija','felix','isabella','khalil','kylian','leeloo','maud','melina','morgan','noemie','tracy','ydriss','zoe'])
+        && request.resource.data.down.hasOnly(['amel','antoine','brieuc','cameron','elija','felix','isabella','khalil','kylian','leeloo','maud','melina','morgan','noemie','tracy','ydriss','zoe'])
+        && request.time < season().locks[string(request.resource.data.week)];
+    }
+
+    // Option « mes votes sont anonymes » de chaque joueur.
+    match /likeprefs/{uid} {
+      allow read: if true;
+      allow write: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['anon'])
+        && request.resource.data.anon is bool;
+    }
   }
 }

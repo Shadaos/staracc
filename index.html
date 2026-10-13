@@ -288,6 +288,28 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .strow .status{margin-top:0!important}
 .fighter .btn.tf1{padding:4px 7px;font-size:10.5px;box-shadow:none}
 .blockmsg p:first-child{color:var(--text);line-height:1.5}
+/* cœurs & tomates */
+.seg-bar{overflow-x:auto;scrollbar-width:none}.seg{white-space:nowrap}
+.lkbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-weight:700}
+.lk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+.lk-it{display:flex;flex-direction:column;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:6px}
+.lk-it.up{border-color:#e0457b}.lk-it.down{border-color:#d9622b}
+.lk-it .av{width:100%;aspect-ratio:4/5}
+.lk-it .nm{font-weight:700;text-align:center}
+.lk-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lkb{display:inline-flex;justify-content:center;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 6px;font-size:16px;color:var(--text);min-height:36px}
+.lkb b{font-size:13px;color:var(--muted)}
+.lkb[aria-pressed=true]{border-color:var(--gold);background:rgba(248,201,74,.16)}.lkb[aria-pressed=true] b{color:var(--gold2)}
+.lkb[disabled]{opacity:.45}
+.baro{display:flex;flex-direction:column;gap:6px}
+.baro .br{display:grid;grid-template-columns:28px 40px 1fr auto;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:6px 10px}
+.baro .br .av{width:40px;aspect-ratio:4/5}
+.baro .pos{font:400 20px/1 var(--f-display);color:var(--gold2);text-align:center}
+.baro .who{min-width:0}.baro .who small{display:block;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.baro .net{font:400 22px/1 var(--f-display);text-align:right}.baro .net.pos{color:#7fd88f}.baro .net.neg{color:#ff8a65}
+.trend{font-size:13px;font-weight:700;margin-left:4px}.trend.up{color:#7fd88f}.trend.down{color:#ff8a65}
+.lkwho{font-size:14px;color:var(--muted)}
+.fighter .lkline{margin:0;font-weight:700}
 /* quotidiennes */
 .tabs{scrollbar-width:thin;scrollbar-color:var(--gold) transparent;-webkit-overflow-scrolling:touch}
 .tabs::-webkit-scrollbar{height:3px}.tabs::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
@@ -425,6 +447,24 @@ function toast(msg){let t=$('#toast');if(!t){t=document.createElement('div');t.i
   t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>{t.hidden=true;},3800);}
 const BLOCK_MSG='Connexion impossible : un bloqueur de pubs (uBlock, AdGuard, Brave…) empêche le site de joindre sa base de données. Il n’y a pas de pub à bloquer sur ce site : désactive ton bloqueur pour ce site, puis recharge la page. Si tu n’as pas de bloqueur, vérifie ta connexion internet.';
 function isNetErr(e){const c=e&&e.code||'';return c==='auth/network-request-failed'||(!c&&e instanceof TypeError);}
+/* ===================== cœurs & tomates ===================== */
+const LK_MAX=3;
+Object.assign(S,{likes:{},likePrefs:{},lkWeek:null});
+function likeWeek(){for(let n=1;n<=40;n++){if(Date.now()<lockAt(S.real,n))return n;}return null;}
+function myLikes(n){const x=S.uid&&n?S.likes[n+'_'+S.uid]:null;return{up:x?x.up.slice():[],down:x?x.down.slice():[]};}
+function likeStats(n){const st={};ids.forEach(id=>st[id]={up:[],down:[]});
+  Object.values(S.likes).forEach(x=>{if(x.week!==n)return;x.up.forEach(id=>st[id]&&st[id].up.push(x.uid));x.down.forEach(id=>st[id]&&st[id].down.push(x.uid));});return st;}
+function likeWeeks(){const w=new Set();Object.values(S.likes).forEach(x=>w.add(x.week));const c=likeWeek();if(c)w.add(c);return[...w].sort((a,b)=>b-a);}
+function anonOf(uid){return!!S.likePrefs[uid];}
+function whoNames(uids){const named=[],anon=uids.filter(u=>anonOf(u)&&u!==S.uid).length;
+  uids.forEach(u=>{if(u===S.uid)named.push('toi');else if(!anonOf(u))named.push(S.players[u]?S.players[u].name:'?');});
+  const parts=named.map(esc);if(anon)parts.push(anon+' anonyme'+(anon>1?'s':''));return parts.join(', ');}
+function netTrend(id,n){const a=likeStats(n)[id],net=a.up.length-a.down.length;
+  const prevW=Object.values(S.likes).some(x=>x.week===n-1);if(!prevW)return{net,tr:''};
+  const b=likeStats(n-1)[id],d=net-(b.up.length-b.down.length);
+  return{net,tr:d>0?`<span class="trend up">▲${d}</span>`:d<0?`<span class="trend down">▼${-d}</span>`:''};}
+function sgn(v){return v>0?'+'+v:String(v);}
+function aliveIds(){const out=outOrder(S.season);return ids.filter(id=>!out.includes(id));}
 /* ===================== quotidiennes ===================== */
 const REACT=[['love','😍'],['lol','😂'],['wow','😱'],['sad','😢'],['fire','🔥'],['clap','👏']];
 const RCODES=REACT.map(r=>r[0]);
@@ -502,8 +542,14 @@ function fighter(id){
     ${stat('Place moyenne du groupe',avg?avg.toFixed(1).replace('.',','):'—',avg?(N-avg)/(N-1)*100:0)}
     ${stat('Ton prono',mi>-1?'place n°'+(mi+1):'pas placé',mi>-1?(N-(mi+1))/(N-1)*100:0)}
     <p class="muted gnote">${g.complete?`Moyenne sur ${g.complete} classement${g.complete>1?'s':''} complet${g.complete>1?'s':''}.`:'Les stats du groupe apparaissent dès le premier classement complet.'}</p>
-    <div class="row">${acts}</div>`;
+    ${likeFiche(id)}
+    <div class="row">${acts}${likeActs(id,st)}</div>`;
 }
+function likeFiche(id){const n=likeWeek()||likeWeeks()[0];if(!n)return'';const a=likeStats(n)[id],t=netTrend(id,n);
+  const who=[a.up.length?'❤️ '+whoNames(a.up):'',a.down.length?'🍅 '+whoNames(a.down):''].filter(Boolean).join(' · ');
+  return`<p class="lkline">Cote d’amour S${n} : ❤️ ${a.up.length} · 🍅 ${a.down.length} · net ${sgn(t.net)}${t.tr}</p>${who?`<p class="lkwho gnote">${who}</p>`:''}`;}
+function likeActs(id,st){const n=likeWeek();if(!n||st.k==='ko'||!registered()||S.anon)return'';const my=myLikes(n),u=my.up.includes(id),d=my.down.includes(id);
+  return`<button class="btn ${u?'':'ghost'}" data-act="like" data-k="up" data-id="${id}" aria-pressed="${u}">${u?'❤️ Coup de cœur ✓':'❤️ Coup de cœur'}</button><button class="btn ${d?'danger':'ghost'}" data-act="like" data-k="down" data-id="${id}" aria-pressed="${d}">${d?'🍅 Tomate ✓':'🍅 Tomate'}</button>`;}
 function vSelect(){
   return`<div class="sel-wrap"><div class="card fighter">${fighter(S.sel)}</div>
     <div class="sel-main"><h2>Choisis ton champion</h2><div class="sel-grid">${ids.map(tile).join('')}</div></div></div>`;
@@ -662,8 +708,8 @@ function initDrag(){
       else render();}});
 }
 function vMine(){
-  const seg=[['week','Cette semaine'],['final','Pronostic final']].map(([k,l])=>`<button class="seg${S.sub===k?' on':''}" data-act="sub" data-id="${k}" aria-pressed="${S.sub===k}">${l}</button>`).join('');
-  return`${whoCard()}<div class="seg-bar" role="tablist" aria-label="Type de pronostic">${seg}</div>${S.sub==='final'?vFinal():vWeek()}`;
+  const seg=[['week','Cette semaine'],['final','Final'],['likes','❤️ / 🍅']].map(([k,l])=>`<button class="seg${S.sub===k?' on':''}" data-act="sub" data-id="${k}" aria-pressed="${S.sub===k}">${l}</button>`).join('');
+  return`${whoCard()}<div class="seg-bar" role="tablist" aria-label="Type de pronostic">${seg}</div>${S.sub==='final'?vFinal():S.sub==='likes'?vLikes():vWeek()}`;
 }
 
 function vBoard(){
@@ -694,6 +740,9 @@ function vPlayer(uid){
     const done=w.out.length>0;
     return`<div><b>S${n}</b><span><b>Éliminé</b> : ${res(pk.elim,w.out,done)}${done?` <span class="muted">(réel : ${esc(C[w.out[0]].name)})</span>`:''}</span>
       <span><b>Immunisé</b> : ${res(pk.immune,w.immune,!!w.immune)}${w.immune?` <span class="muted">(réel : ${esc(C[w.immune].name)})</span>`:''}</span></div>`;}).join('');
+  const lkw=likeWeeks().filter(n=>S.likes[n+'_'+uid]);
+  const lkrows=anonOf(uid)&&!me?'<p class="muted">Ce joueur vote en anonyme.</p>':lkw.map(n=>{const x=S.likes[n+'_'+uid];
+    return`<div><b>S${n}</b><span>❤️ ${x.up.length?x.up.map(id=>esc(C[id].name)).join(', '):'<span class="muted">rien</span>'}</span><span>🍅 ${x.down.length?x.down.map(id=>esc(C[id].name)).join(', '):'<span class="muted">rien</span>'}</span></div>`;}).join('')||'<p class="muted">Aucun vote.</p>';
   // classement final
   const cards=o.map((id,i)=>{const a=P[id];let pts='';
     if(a!=null&&o.length===N){const d=Math.abs(a-(i+1));const v=d===0?SC.exact+(a===1?SC.winner:0):d===1?SC.near1:d===2?SC.near2:0;pts=v?`<b class="r-ok">+${v}</b>`:'<b class="r-bad">0</b>';}
@@ -702,10 +751,39 @@ function vPlayer(uid){
     <div class="card"><div class="wk-head"><h2>${esc(p.name)}${me?' (toi)':''}</h2><span class="ptsbig">${sc.total}<small> pts</small></span></div>
       <p class="muted">Final ${sc.rank} · Hebdo ${sc.weekly} · Bonus ${sc.bonus}</p></div>
     <div class="card"><h3>Choix de la semaine</h3><div class="hist">${wrows||'<p class="empty">Pas encore de semaine.</p>'}</div></div>
+    <div class="card"><h3>Cœurs & tomates</h3><div class="hist">${lkrows}</div></div>
     <div class="card"><h3>Pronostic final · ${o.length}/${N}${p.validated&&o.length===N?' · validé ✓':''}</h3>${cards?`<div class="cards">${cards}</div>`:'<p class="empty">Pas encore de classement.</p>'}</div>`;
 }
 
 /* ---------- organisateur ---------- */
+function vLikes(){
+  const n=likeWeek(),reg=registered()&&!S.anon,my=myLikes(n),alive=aliveIds(),st=n?likeStats(n):null;
+  if(!n)return`<div class="card"><p class="muted">Les votes sont terminés pour cette saison.</p></div>`+baroBlock();
+  const lk=lockAt(S.real,n);
+  const items=alive.map(id=>{const u=my.up.includes(id),d=my.down.includes(id),a=st[id];
+    return`<div class="lk-it${u?' up':d?' down':''}">${av(id)}<span class="nm">${esc(C[id].name)}</span>
+      <div class="lk-btns"><button class="lkb" data-act="like" data-k="up" data-id="${id}" aria-pressed="${u}" aria-label="Coup de cœur pour ${esc(C[id].name)}"${reg?'':' disabled'}>❤️<b>${a.up.length||''}</b></button>
+      <button class="lkb" data-act="like" data-k="down" data-id="${id}" aria-pressed="${d}" aria-label="Tomate pour ${esc(C[id].name)}"${reg?'':' disabled'}>🍅<b>${a.down.length||''}</b></button></div></div>`;}).join('');
+  return`<div class="card"><div class="wk-head"><h3>Cœurs & tomates · semaine ${n}</h3><span class="lock open">Ouvert · ferme dans ${fmtLeft(lk)}</span></div>
+    <p class="muted">Chaque semaine, donne jusqu’à 3 ❤️ aux élèves que tu aimes et 3 🍅 à ceux qui t’agacent. Simple stat d’ambiance : ça ne compte pas dans les points. Les votes repartent à zéro chaque dimanche minuit.</p>
+    <div class="lkbar"><span>❤️ ${my.up.length}/${LK_MAX}</span><span>🍅 ${my.down.length}/${LK_MAX}</span>${saveLine()}</div>
+    ${reg?`<label class="check"><input type="checkbox" id="lkanon"${anonOf(S.uid)?' checked':''}> Mes votes sont anonymes (les autres voient les totaux, pas mon nom)</label>`:'<p class="muted">Connecte-toi avec ton pseudo pour voter.</p>'}
+    <div class="lk-grid">${items}</div></div>`+baroBlock();
+}
+function baroBlock(){
+  const weeks=likeWeeks();if(!weeks.length)return'';
+  const n=weeks.includes(S.lkWeek)?S.lkWeek:weeks[0],st=likeStats(n),out=outOrder(S.season);
+  const rows=ids.filter(id=>st[id].up.length||st[id].down.length).map(id=>({id,a:st[id],...netTrend(id,n)}))
+    .sort((x,y)=>y.net-x.net||y.a.up.length-x.a.up.length||x.a.down.length-y.a.down.length);
+  let pos=0,prev=null;
+  const list=rows.map((r,i)=>{if(r.net!==prev){pos=i+1;prev=r.net;}
+    const who=[r.a.up.length?'❤️ '+whoNames(r.a.up):'',r.a.down.length?'🍅 '+whoNames(r.a.down):''].filter(Boolean).join(' · ');
+    return`<div class="br"><span class="pos">${pos}</span>${av(r.id)}<span class="who"><b>${esc(C[r.id].name)}${out.includes(r.id)?' <span class="muted">(éliminé'+E(r.id)+')</span>':''}</b><small>❤️ ${r.a.up.length} · 🍅 ${r.a.down.length}</small><small>${who}</small></span><span class="net ${r.net>0?'pos':r.net<0?'neg':''}">${sgn(r.net)}${r.tr}</span></div>`;}).join('');
+  const seg=weeks.length>1?`<div class="seg-bar">${weeks.map(w=>`<button class="seg${w===n?' on':''}" data-act="lkWeek" data-id="${w}" aria-pressed="${w===n}">S${w}</button>`).join('')}</div>`:'';
+  return`<div class="card"><h3>Baromètre du groupe · semaine ${n}</h3>${seg}
+    <div class="baro">${list||'<p class="empty">Aucun vote pour l’instant.</p>'}</div>
+    <p class="muted gnote">Score net = cœurs moins tomates. La flèche compare à la semaine précédente.</p></div>`;
+}
 function vDaily(){
   if(!S.recapLoaded){loadRecaps();return`<h2>Les quotidiennes</h2><div class="card"><p class="muted">Chargement…</p></div>`;}
   const orga=isOrga();
@@ -877,6 +955,25 @@ function seasonDoc(s){
   return{rankingOpen:s.rankingOpen,weeks:s.weeks,locks,updatedAt:fb.fs.serverTimestamp()};
 }
 function needPlayer(){if(!fb){toast('Base de données indisponible.');return false;}if(!registered()||S.anon){toast('Connecte-toi avec ton pseudo pour réagir.');return false;}return true;}
+async function toggleLike(id,k){
+  if(!C[id]||!['up','down'].includes(k)||!needPlayer())return;
+  const n=likeWeek();if(!n){toast('Les votes sont fermés.');return;}
+  if(!aliveIds().includes(id)){toast('Cet élève n’est plus en lice.');return;}
+  const key=n+'_'+S.uid,prev=S.likes[key],my=myLikes(n),o=k==='up'?'down':'up';
+  if(my[k].includes(id))my[k]=my[k].filter(x=>x!==id);
+  else{if(my[k].length>=LK_MAX){toast(k==='up'?'Tu as déjà donné tes 3 ❤️ : retire-en un d’abord.':'Tu as déjà lancé tes 3 🍅 : retire-en une d’abord.');return;}
+    my[k].push(id);my[o]=my[o].filter(x=>x!==id);}
+  S.likes[key]={uid:S.uid,week:n,up:my.up,down:my.down};S.save='pending';render();
+  try{const ref=fb.fs.doc(fb.db,'likes',key);
+    if(my.up.length||my.down.length)await fb.fs.setDoc(ref,{uid:S.uid,week:n,up:my.up,down:my.down});else await fb.fs.deleteDoc(ref);
+    S.save='ok';render();}
+  catch(err){if(prev)S.likes[key]=prev;else delete S.likes[key];S.save=errText(err);render();}
+}
+async function setLikeAnon(v){
+  if(!needPlayer())return;const prev=anonOf(S.uid);S.likePrefs[S.uid]=v;render();
+  try{await fb.fs.setDoc(fb.fs.doc(fb.db,'likeprefs',S.uid),{anon:!!v});toast(v?'Tes votes sont maintenant anonymes.':'Ton nom apparaît de nouveau sur tes votes.');}
+  catch(err){S.likePrefs[S.uid]=prev;render();toast('Non enregistré ('+errText(err)+').');}
+}
 async function react(rid,k){
   if(!RCODES.includes(k)||!needPlayer())return;
   const key=rid+'_'+S.uid,cur=S.reacts[key]?S.reacts[key].e.slice():[],prev=S.reacts[key];
@@ -920,6 +1017,7 @@ function enterOrga(){if(!isOrga()){render();return;}S.tab='orga';ls.set('sa14-ta
 window.addEventListener('hashchange',()=>{if(location.hash==='#orga')enterOrga();});
 function setNoSpoil(v){S.noSpoil=v;ls.set('sa14-nospoil',v?'1':'0');S.season=viewSeason();render();}
 document.addEventListener('change',e=>{if(e.target.id==='nospoil')setNoSpoil(e.target.checked);
+  if(e.target.id==='lkanon')setLikeAnon(e.target.checked);
   else if(e.target.id==='validate'){if(cleanOrder(S.me.order).length!==N){e.target.checked=false;return;}S.me.validated=e.target.checked;queueMe();toast(S.me.validated?'Classement validé ✓':'Classement dévalidé.');}});
 document.addEventListener('input',e=>{if(/^cm-/.test(e.target.id)){S.drafts[e.target.id.slice(3)]=e.target.value;return;}if(e.target.id==='pname'&&$('#pcode'))S.form.name=e.target.value;else if(e.target.id==='pcode')S.form.code=e.target.value.replace(/\D/g,'');});
 document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;
@@ -935,6 +1033,8 @@ document.addEventListener('click',e=>{
   else if(a==='recapReload')loadRecaps(true);
   else if(a==='cmToggle'){S.openCm.has(id)?S.openCm.delete(id):S.openCm.add(id);render();if(S.openCm.has(id)){const t=document.getElementById('cm-'+id);if(t)t.focus({preventScroll:true});}}
   else if(a==='react')react(id,t.dataset.k);
+  else if(a==='like')toggleLike(id,t.dataset.k);
+  else if(a==='lkWeek'){S.lkWeek=+id;render();}
   else if(a==='cmSend')sendComment(id);
   else if(a==='cmDel')delComment(id);
   else if(a==='recapHide')toggleRecapHidden(id);
@@ -988,6 +1088,8 @@ async function initFirebase(){
     fs.onSnapshot(fs.doc(db,'season','main'),snap=>{S.snapOk=true;if(S.note===BLOCK_MSG&&S.authReady)S.note='';S.seasonExists=snap.exists();S.real=normSeason(snap.exists()?snap.data():null);S.season=viewSeason();S.conn='ok';render();},fail('de la saison'));
     fs.onSnapshot(fs.collection(db,'players'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.name==='string'&&x.name.trim())p[d.id]={name:x.name.trim().slice(0,40),order:cleanOrder(x.order),validated:x.validated===true};});S.players=p;syncMe();render();},fail('des joueurs'));
     fs.onSnapshot(fs.collection(db,'picks'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&Number.isInteger(x.week))p[x.week+'_'+x.uid]={uid:x.uid,week:x.week,elim:C[x.elim]?x.elim:null,immune:C[x.immune]?x.immune:null};});S.picks=p;render();},fail('des choix'));
+    fs.onSnapshot(fs.collection(db,'likes'),q=>{const r={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&Number.isInteger(x.week))r[x.week+'_'+x.uid]={uid:x.uid,week:x.week,up:cleanOrder(x.up).slice(0,LK_MAX),down:cleanOrder(x.down).slice(0,LK_MAX)};});S.likes=r;render();},()=>{});
+    fs.onSnapshot(fs.collection(db,'likeprefs'),q=>{const r={};q.forEach(d=>{const x=d.data();if(x&&x.anon===true)r[d.id]=true;});S.likePrefs=r;render();},()=>{});
     fs.onSnapshot(fs.doc(db,'season','recaps'),snap=>{const d=snap.exists()?snap.data():{};S.recapHidden=Array.isArray(d.hidden)?d.hidden.filter(x=>typeof x==='string'):[];render();},()=>{});
     fs.onSnapshot(fs.collection(db,'reactions'),q=>{const r={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&typeof x.recap==='string'&&Array.isArray(x.e))r[d.id]={uid:x.uid,recap:x.recap,e:x.e.filter(k=>RCODES.includes(k))};});S.reacts=r;render();},()=>{});
     fs.onSnapshot(fs.collection(db,'comments'),q=>{const c=[];q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&typeof x.recap==='string'&&typeof x.text==='string')c.push({id:d.id,uid:x.uid,recap:x.recap,text:x.text.slice(0,500),at:toMs(x.at)});});
