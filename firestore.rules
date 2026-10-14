@@ -115,5 +115,15 @@ service cloud.firestore {
         && request.resource.data.at == request.time;
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
+
+    // Préférences de notification de chaque joueur (lues par le robot d'envoi avec les droits admin).
+    match /notifprefs/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['prime', 'thread', 'all'])
+        && request.resource.data.prime is bool
+        && request.resource.data.thread is bool
+        && request.resource.data.all is bool;
+    }
   }
 }

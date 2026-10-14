@@ -347,6 +347,7 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .notifrow{flex-basis:100%;margin:4px 0 0;color:var(--muted)}
 .notifcard{border-color:var(--gold)}.notifcard h3{margin:0}.notifcard p{margin:0}.notifcard.on{border-color:var(--ok)}
 .steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.4}.steps .ico{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.np{display:flex;flex-direction:column;gap:6px}
 </style>
 </head>
 <body>
@@ -503,7 +504,9 @@ async function loadRecaps(force){
     S.recapErr=false;
     const an={};S.recaps.slice().reverse().forEach(r=>{if(r.nominees.length>=2&&r.nominees.length<=8)an[String(recapWeek(r.id))]=r.nominees;});
     S.autoNoms=an;if(S.realRaw)setReal(S.realRaw);}catch(e){S.recapErr=true;}
-  S.recapLoaded=true;render();}
+  S.recapLoaded=true;
+  if(S.deepRc&&S.recaps.some(r=>r.id===S.deepRc)){S.openCm.add(S.deepRc);const id=S.deepRc;S.deepRc=null;render();setTimeout(()=>{const el=document.getElementById('rc-'+id);if(el)el.scrollIntoView({block:'start'});},80);return;}
+  render();}
 function recapDate(id){const[y,m,d]=id.split('-').map(Number);return{y,m:m-1,d};}
 function recapWeek(id){const{y,m,d}=recapDate(id);return Math.max(0,Math.ceil((Date.UTC(y,m,d)-Date.UTC(LAUNCH[0],LAUNCH[1],LAUNCH[2]))/864e5/7));}
 function recapLabel(id){const{y,m,d}=recapDate(id);const t=new Date(Date.UTC(y,m,d,12)).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'});return t.charAt(0).toUpperCase()+t.slice(1);}
@@ -529,7 +532,7 @@ function renderHead(){
   else if(!banner&&S.conn==='ok'&&!S.seasonExists)banner='La saison n’est pas encore ouverte par l’organisateur.';
   const nomSpoil=S.noNom&&S.tab!=='orga'&&(S.nomMasked||S.recaps.some(recapNomHidden))?`<p class="note spoil">Nominés masqués jusqu’au début du prime, samedi 21h10. <button class="linkbtn" data-act="nonomOff">Tout afficher</button></p>`:'';
   const ns=registered()&&!S.anon&&S.tab!=='settings'&&S.tab!=='orga'&&ls.get('sa14-notifLater')!=='1'?notifState():'off';
-  const nudge=['ready','ios-install','denied'].includes(ns)?`<p class="note notifnudge">🔔 Active les notifications pour être prévenu au début du prime. <button class="linkbtn" data-act="notifShow">Comment faire</button> · <button class="linkbtn" data-act="notifLater">Plus tard</button></p>`:'';
+  const nudge=['ready','ios-install','denied'].includes(ns)?`<p class="note notifnudge">🔔 Active les notifications : début du prime, commentaires des quotidiennes… <button class="linkbtn" data-act="notifShow">Comment faire</button> · <button class="linkbtn" data-act="notifLater">Plus tard</button></p>`:'';
   const spoil=S.noSpoil&&S.masked&&S.tab!=='orga'?`<p class="note spoil">Anti-spoiler activé : les résultats du dernier prime sont masqués jusqu’à dimanche minuit. <button class="linkbtn" data-act="spoil">Tout afficher</button></p>`:'';
   $('#head').innerHTML=`
     <div class="brand"><h1>Pronos <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z"/></svg><em>Star Ac’</em></h1>
@@ -1065,6 +1068,7 @@ function setNoNom(v){S.noNom=v;ls.set('sa14-nonom',v?'1':'0');S.season=viewSeaso
 document.addEventListener('change',e=>{if(e.target.id==='nospoil')setNoSpoil(e.target.checked);
   if(e.target.id==='nonom')setNoNom(e.target.checked);
   if(e.target.id==='lkanon')setLikeAnon(e.target.checked);
+  if(e.target.dataset&&e.target.dataset.np)setNotifPref(e.target.dataset.np,e.target.checked);
   else if(e.target.id==='validate'){if(cleanOrder(S.me.order).length!==N){e.target.checked=false;return;}S.me.validated=e.target.checked;queueMe();toast(S.me.validated?'Classement validé ✓':'Classement dévalidé.');}});
 document.addEventListener('input',e=>{if(/^cm-/.test(e.target.id)){S.drafts[e.target.id.slice(3)]=e.target.value;return;}if(e.target.id==='pname'&&$('#pcode'))S.form.name=e.target.value;else if(e.target.id==='pcode')S.form.code=e.target.value.replace(/\D/g,'');});
 document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;
@@ -1152,6 +1156,7 @@ async function initFirebase(){
     let first=true;
     authM.onAuthStateChanged(auth,u=>{
       S.uid=u?u.uid:null;S.anon=!!(u&&u.isAnonymous);if(u)S.authReady=true;
+      if(u&&!u.isAnonymous){if(S.npUnsub)S.npUnsub();S.npUnsub=fs.onSnapshot(fs.doc(db,'notifprefs',u.uid),d=>{S.notifPrefs=d.exists()?d.data():null;render();},()=>{});}
       if(u&&S.snapOk&&S.note===BLOCK_MSG){S.note='';S.conn='ok';}
       S.login=u&&u.email?u.email.split('@')[0]:'';
       S.meDirty=false;S.me={name:'',order:[]};syncMe();render();
@@ -1165,6 +1170,18 @@ if(location.hash==='#orga')enterOrga();
 /* ===================== notifications ===================== */
 function pushOK(){return 'Notification' in window&&'serviceWorker' in navigator&&'PushManager' in window;}
 function notifOn(){return ls.get('sa14-push')==='1'&&pushOK()&&Notification.permission==='granted';}
+const NP_DEF={prime:true,thread:true,all:false};
+function myNotifPrefs(){return Object.assign({},NP_DEF,S.notifPrefs||{});}
+async function setNotifPref(k,v){
+  if(!fb||!S.uid)return;const prev=S.notifPrefs;S.notifPrefs=Object.assign(myNotifPrefs(),{[k]:v});render();
+  try{await fb.fs.setDoc(fb.fs.doc(fb.db,'notifprefs',S.uid),myNotifPrefs());}
+  catch(e){S.notifPrefs=prev;render();toast('Réglage non enregistré ('+errText(e)+').');}}
+function notifPrefsBlock(){const np=myNotifPrefs();
+  return`<div class="np"><span class="sub">Me prévenir pour</span>
+    <label class="check"><input type="checkbox" data-np="prime"${np.prime?' checked':''}> Le début du prime (samedi soir)</label>
+    <label class="check"><input type="checkbox" data-np="thread"${np.thread?' checked':''}> Les nouveaux commentaires sur les quotidiennes où j’ai commenté</label>
+    <label class="check"><input type="checkbox" data-np="all"${np.all?' checked':''}> Tous les nouveaux commentaires sur les quotidiennes</label>
+    <p class="muted">Les notifications de commentaires arrivent avec quelques minutes de décalage (5 à 15 min environ). Tes propres commentaires ne te sont jamais notifiés.</p></div>`;}
 function notifState(){
   if(!vapidKey)return'off';
   if(notifOn())return'on';
@@ -1174,11 +1191,11 @@ function notifState(){
   return'ready';}
 function notifCard(force){
   const st=notifState();if(st==='off')return'';
-  if(st==='on')return force?`<div class="card notifcard on"><p>🔔 <b>Notifications activées sur cet appareil.</b> Tu seras prévenu au début de chaque prime.</p>
+  if(st==='on')return force?`<div class="card notifcard on"><p>🔔 <b>Notifications activées sur cet appareil.</b></p>${notifPrefsBlock()}
     <div class="row"><button class="btn ghost" data-act="notifTest">Tester sur ce téléphone</button><button class="linkbtn" data-act="notifOff">Désactiver</button></div></div>`:'';
   if(!force&&ls.get('sa14-notifLater')==='1')return'';
   const later=force?'':`<button class="linkbtn" data-act="notifLater">Plus tard</button>`;
-  const head=`<h3>🔔 Sois prévenu au début du prime</h3><p class="muted">Une notification chaque samedi, juste avant 21h10. Rien d’autre.</p>`;
+  const head=`<h3>🔔 Active les notifications</h3><p class="muted">Pour être prévenu au début du prime, et si tu le souhaites des nouveaux commentaires sur les quotidiennes. Tu choisis quoi recevoir une fois activées.</p>`;
   let body='';
   if(st==='ios-install')body=`<ol class="steps">
       <li>Ouvre ce site dans <b>Safari</b> (pas Chrome ni l’appli Instagram/WhatsApp).</li>
@@ -1225,6 +1242,7 @@ async function disableNotif(){
     const m=await import(FB+'firebase-messaging.js');await m.deleteToken(m.getMessaging(fb.app));}catch(e){}
   ls.del('sa14-pushtok');toast('Notifications désactivées sur cet appareil.');
 }
+(function(){const q=new URLSearchParams(location.search),rc=q.get('rc');if(rc&&/^\d{4}-\d{2}-\d{2}$/.test(rc)){S.deepRc=rc;S.tab='daily';history.replaceState(null,'',location.pathname);}})();
 /* ===================== application installable ===================== */
 function standalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;}
 function isIOS(){return/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);}

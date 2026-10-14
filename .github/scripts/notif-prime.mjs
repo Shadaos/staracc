@@ -31,8 +31,9 @@ if (!test) {
   if (st.exists && st.data().lastPrime === today) { console.log('Déjà envoyé aujourd’hui.'); process.exit(0); }
 }
 
-const snap = await db.collection('pushTokens').get();
-const tokens = snap.docs.map(d => d.id);
+const [snap, prefSnap] = await Promise.all([db.collection('pushTokens').get(), db.collection('notifprefs').get()]);
+const noPrime = new Set(prefSnap.docs.filter(d => d.data().prime === false).map(d => d.id));
+const tokens = snap.docs.filter(d => test || !noPrime.has(d.data().uid)).map(d => d.id);
 console.log(`${tokens.length} appareil(s) inscrit(s).`);
 
 const title = test ? 'Test des notifications ✅' : "C'est l'heure du prime ! ⭐";

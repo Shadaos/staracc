@@ -1,0 +1,26 @@
+# Notifications des nouveaux commentaires sur les quotidiennes.
+# GitHub lance ce robot toutes les 5 minutes environ (souvent avec du retard aux heures chargées).
+name: Notification commentaires
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: notif-commentaires
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-audit --no-fund firebase-admin@12
+      - run: node .github/scripts/notif-commentaires.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
