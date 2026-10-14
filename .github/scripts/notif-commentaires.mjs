@@ -14,13 +14,10 @@ const db = getFirestore();
 const stRef = db.doc('season/notifs');
 
 const st = await stRef.get();
-const last = st.exists && st.data().lastCommentAt;
-if (!last) {                       // première fois : on part de maintenant, sans rattrapage
-  await stRef.set({ lastCommentAt: Timestamp.now() }, { merge: true });
-  console.log('Initialisé, rien à envoyer.'); process.exit(0);
-}
+// Première fois : on ne rattrape que la dernière heure (pas tout l'historique).
+const last = (st.exists && st.data().lastCommentAt) || Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
 const fresh = await db.collection('comments').where('at', '>', last).orderBy('at').get();
-if (fresh.empty) { console.log('Aucun nouveau commentaire.'); process.exit(0); }
+if (fresh.empty) { console.log('Aucun nouveau commentaire.'); if (!st.exists || !st.data().lastCommentAt) await stRef.set({ lastCommentAt: Timestamp.now() }, { merge: true }); process.exit(0); }
 console.log(`${fresh.size} nouveau(x) commentaire(s).`);
 
 const [allComments, prefsSnap, tokSnap, players] = await Promise.all([
@@ -49,6 +46,7 @@ fresh.forEach(d => {
 
 const day = id => { const [y, m, d] = id.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }); };
+console.log(`${Object.keys(tokens).length} joueur(s) avec notifications activées.`);
 let ok = 0, ko = 0; const dead = [];
 for (const [uid, list] of Object.entries(out)) {
   const recaps = [...new Set(list.map(x => x.recap))];
