@@ -345,6 +345,8 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .install-help p{margin:0 0 8px}
 .fighter.empty{justify-content:center}.pickhint{margin:0;font-weight:700;color:var(--muted);text-align:center}
 .notifrow{flex-basis:100%;margin:4px 0 0;color:var(--muted)}
+.notifcard{border-color:var(--gold)}.notifcard h3{margin:0}.notifcard p{margin:0}.notifcard.on{border-color:var(--ok)}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.4}.steps .ico{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:0 4px}
 </style>
 </head>
 <body>
@@ -526,13 +528,15 @@ function renderHead(){
   if(!banner&&S.conn==='noconfig')banner='Le site n’est pas encore relié à sa base de données : les pronos ne peuvent pas être enregistrés pour l’instant.';
   else if(!banner&&S.conn==='ok'&&!S.seasonExists)banner='La saison n’est pas encore ouverte par l’organisateur.';
   const nomSpoil=S.noNom&&S.tab!=='orga'&&(S.nomMasked||S.recaps.some(recapNomHidden))?`<p class="note spoil">Nominés masqués jusqu’au début du prime, samedi 21h10. <button class="linkbtn" data-act="nonomOff">Tout afficher</button></p>`:'';
+  const ns=registered()&&!S.anon&&S.tab!=='mine'&&S.tab!=='orga'&&ls.get('sa14-notifLater')!=='1'?notifState():'off';
+  const nudge=['ready','ios-install','denied'].includes(ns)?`<p class="note notifnudge">🔔 Active les notifications pour être prévenu au début du prime. <button class="linkbtn" data-act="notifShow">Comment faire</button> · <button class="linkbtn" data-act="notifLater">Plus tard</button></p>`:'';
   const spoil=S.noSpoil&&S.masked&&S.tab!=='orga'?`<p class="note spoil">Anti-spoiler activé : les résultats du dernier prime sont masqués jusqu’à dimanche minuit. <button class="linkbtn" data-act="spoil">Tout afficher</button></p>`:'';
   $('#head').innerHTML=`
     <div class="brand"><h1>Pronos <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z"/></svg><em>Star Ac’</em></h1>
       <span class="meta">Saison 14 · ${win?'Vainqueur : '+esc(C[win].name):alive+' en lice · semaine '+cur} · ${np} joueur${np>1?'s':''}</span></div>
     <div class="when"><span class="pill">Nominations <b>${esc(nextDayShort(3))}</b></span><span class="pill">Prime <b>${esc(nextDayShort(6))}</b></span></div>
     <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-act="tab" data-id="${k}">${l}</button>`).join('')}</nav>
-    ${banner?`<p class="note">${esc(banner)}</p>`:''}${spoil}${nomSpoil}`;
+    ${banner?`<p class="note">${esc(banner)}</p>`:''}${spoil}${nomSpoil}${nudge}`;
 }
 function tile(id){
   const c=C[id],st=status(id),lab=st.k==='ko'?(st.quit?'Abandon':'KO · n°'+st.place):lbl(st.k,id);
@@ -737,7 +741,7 @@ function initDrag(){
 }
 function vMine(){
   const seg=[['week','Cette semaine'],['likes','❤️ / 🍅'],['final','Final']].map(([k,l])=>`<button class="seg${S.sub===k?' on':''}" data-act="sub" data-id="${k}" aria-pressed="${S.sub===k}">${l}</button>`).join('');
-  return`${whoCard()}<div class="seg-bar" role="tablist" aria-label="Type de pronostic">${seg}</div>${S.sub==='final'?vFinal():S.sub==='likes'?vLikes():vWeek()}`;
+  return`${S.uid&&registered()&&!S.anon?notifCard(S.notifForce):''}${whoCard()}<div class="seg-bar" role="tablist" aria-label="Type de pronostic">${seg}</div>${S.sub==='final'?vFinal():S.sub==='likes'?vLikes():vWeek()}`;
 }
 
 function vBoard(){
@@ -1081,6 +1085,9 @@ document.addEventListener('click',e=>{
   else if(a==='spoil')setNoSpoil(false);
   else if(a==='nonomOff')setNoNom(false);
   else if(a==='notifOn')enableNotif();
+  else if(a==='notifLater'){ls.set('sa14-notifLater','1');S.notifForce=false;render();}
+  else if(a==='notifShow'){S.notifForce=true;S.tab='mine';render();window.scrollTo(0,0);}
+  else if(a==='notifTest')testNotif();
   else if(a==='notifOff')disableNotif();
   else if(a==='logout')logout();
   else if(a==='pick')savePick(t.dataset.f,id);
@@ -1144,28 +1151,62 @@ async function initFirebase(){
 }
 if(location.hash==='#orga')enterOrga();
 /* ===================== notifications ===================== */
-const pushOK=()=>'Notification' in window&&'serviceWorker' in navigator&&'PushManager' in window;
+function pushOK(){return 'Notification' in window&&'serviceWorker' in navigator&&'PushManager' in window;}
 function notifOn(){return ls.get('sa14-push')==='1'&&pushOK()&&Notification.permission==='granted';}
+function notifState(){
+  if(!vapidKey)return'off';
+  if(notifOn())return'on';
+  if(isIOS()&&!standalone())return'ios-install';
+  if(!pushOK())return'unsupported';
+  if(Notification.permission==='denied')return'denied';
+  return'ready';}
+function notifCard(force){
+  const st=notifState();if(st==='off')return'';
+  if(st==='on')return force?`<div class="card notifcard on"><p>🔔 <b>Notifications activées sur cet appareil.</b> Tu seras prévenu au début de chaque prime.</p>
+    <div class="row"><button class="btn ghost" data-act="notifTest">Tester sur ce téléphone</button><button class="linkbtn" data-act="notifOff">Désactiver</button></div></div>`:'';
+  if(!force&&ls.get('sa14-notifLater')==='1')return'';
+  const later=force?'':`<button class="linkbtn" data-act="notifLater">Plus tard</button>`;
+  const head=`<h3>🔔 Sois prévenu au début du prime</h3><p class="muted">Une notification chaque samedi, juste avant 21h10. Rien d’autre.</p>`;
+  let body='';
+  if(st==='ios-install')body=`<ol class="steps">
+      <li>Ouvre ce site dans <b>Safari</b> (pas Chrome ni l’appli Instagram/WhatsApp).</li>
+      <li>Touche <b>Partager</b> <span class="ico">⬆︎</span> en bas de l’écran (le carré avec une flèche).</li>
+      <li>Fais défiler et choisis <b>« Sur l’écran d’accueil »</b>, puis <b>Ajouter</b>.</li>
+      <li>Ouvre <b>Pronos Star Ac</b> depuis l’icône ⭐ de ton écran d’accueil et reviens ici.</li>
+      <li>Touche <b>Activer</b> puis <b>Autoriser</b>.</li></ol>
+    <p class="muted">Apple n’autorise les notifications que depuis l’appli installée (iOS 16.4 ou plus récent).</p>`;
+  else if(st==='unsupported')body=`<p>Ce navigateur ne gère pas les notifications. Sur Android, ouvre le site dans <b>Chrome</b> ; sur iPhone, dans <b>Safari</b>.</p>`;
+  else if(st==='denied')body=`<p>Les notifications sont <b>bloquées</b> pour ce site. Pour les débloquer :</p><ul class="steps">
+      <li><b>iPhone</b> : Réglages → Notifications → <b>Pronos Star Ac</b> → Autoriser les notifications.</li>
+      <li><b>Android (Chrome)</b> : touche le cadenas à gauche de l’adresse (ou les ⋮ → Infos) → Autorisations → <b>Notifications</b> → Autoriser.</li></ul>
+    <p class="muted">Puis recharge la page et touche Activer.</p><div class="row"><button class="btn" data-act="notifOn">Activer</button>${later}</div>`;
+  else body=`<ol class="steps"><li>Touche <b>Activer</b>.</li><li>Ton téléphone demande l’autorisation : réponds <b>Autoriser</b>.</li></ol>
+    <div class="row"><button class="btn" data-act="notifOn">🔔 Activer</button>${later}</div>`;
+  if(st==='ios-install'||st==='unsupported')body+=later?`<div class="row">${later}</div>`:'';
+  return`<div class="card notifcard">${head}${body}</div>`;}
 function notifRow(){
   if(!vapidKey)return'';
-  if(notifOn())return`<p class="notifrow">🔔 Notification au début du prime activée sur cet appareil. <button class="linkbtn" data-act="notifOff">Désactiver</button></p>`;
-  return`<div class="row notifrow"><button class="btn ghost" data-act="notifOn">🔔 Me prévenir au début du prime</button></div>`;}
+  if(notifOn())return`<p class="notifrow">🔔 Notification au début du prime activée sur cet appareil. <button class="linkbtn" data-act="notifTest">Tester</button> · <button class="linkbtn" data-act="notifOff">Désactiver</button></p>`;
+  return`<div class="row notifrow"><button class="btn ghost" data-act="notifShow">🔔 Me prévenir au début du prime</button></div>`;}
 async function enableNotif(){
   if(!vapidKey||!fb){toast('Notifications indisponibles pour l’instant.');return;}
-  if(isIOS&&!standalone()){toast('Sur iPhone, installe d’abord l’appli (bouton en bas de page), puis active les notifications depuis l’appli.');return;}
+  if(isIOS()&&!standalone()){S.notifForce=true;S.tab='mine';render();window.scrollTo(0,0);return;}
   if(!pushOK()){toast('Ce navigateur ne gère pas les notifications.');return;}
   if(!registered()||S.anon){toast('Connecte-toi avec ton pseudo d’abord.');return;}
   try{
     const perm=await Notification.requestPermission();
-    if(perm!=='granted'){toast(perm==='denied'?'Notifications bloquées : autorise-les dans les réglages du navigateur pour ce site.':'Notifications non autorisées.');return;}
+    if(perm!=='granted'){S.notifForce=true;render();toast(perm==='denied'?'Notifications bloquées : autorise-les dans les réglages du navigateur pour ce site.':'Notifications non autorisées.');return;}
     const reg=await navigator.serviceWorker.register('sw.js');await navigator.serviceWorker.ready;
     const m=await import(FB+'firebase-messaging.js');
     const token=await m.getToken(m.getMessaging(fb.app),{vapidKey,serviceWorkerRegistration:reg});
     if(!token)throw new Error('pas de jeton');
     await fb.fs.setDoc(fb.fs.doc(fb.db,'pushTokens',token),{uid:S.uid,at:fb.fs.serverTimestamp()});
-    ls.set('sa14-push','1');ls.set('sa14-pushtok',token);render();toast('C’est noté : tu seras prévenu au début de chaque prime.');
+    ls.set('sa14-push','1');ls.set('sa14-pushtok',token);S.notifForce=true;render();toast('C’est noté : tu seras prévenu au début de chaque prime.');testNotif();
   }catch(e){toast('Activation impossible ('+(e&&(e.code||e.message)||'erreur')+').');}
 }
+async function testNotif(){
+  try{const reg=await navigator.serviceWorker.ready;await reg.showNotification('Test des notifications ✅',{body:'Elles s’affichent bien sur ce téléphone.',icon:'icons/icon-192.png',tag:'test'});toast('Notification de test envoyée.');}
+  catch(e){toast('Test impossible ('+(e&&e.message||'erreur')+').');}}
 async function disableNotif(){
   const t=ls.get('sa14-pushtok');ls.del('sa14-push');render();
   try{if(t&&fb)await fb.fs.deleteDoc(fb.fs.doc(fb.db,'pushTokens',t));
@@ -1173,10 +1214,10 @@ async function disableNotif(){
   ls.del('sa14-pushtok');toast('Notifications désactivées sur cet appareil.');
 }
 /* ===================== application installable ===================== */
-const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function standalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;}
+function isIOS(){return/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);}
 let installEvt=null;
-function showInstallBtn(){const b=$('#install-btn');if(b)b.hidden=standalone()||!(installEvt||isIOS);}
+function showInstallBtn(){const b=$('#install-btn');if(b)b.hidden=standalone()||!(installEvt||isIOS());}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;showInstallBtn();});
 window.addEventListener('appinstalled',()=>{installEvt=null;showInstallBtn();toast('Application installée !');});
 $('#install-btn').addEventListener('click',async()=>{
