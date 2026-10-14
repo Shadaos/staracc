@@ -369,6 +369,14 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .notes{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
 .nt{background:var(--panel2);border:1px solid var(--line);border-radius:4px;color:var(--text);font-weight:700;padding:7px 0;min-width:0}
 .nt.on{background:var(--gold);color:#2a1300;border-color:var(--gold)}
+.ac{position:relative}.ac input{width:100%}
+.ac-list{list-style:none;margin:4px 0 0;padding:4px;background:#0e0206;border:1px solid var(--gold);border-radius:6px;display:flex;flex-direction:column;gap:2px;max-height:300px;overflow:auto}
+.ac-list button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:0;color:var(--text);text-align:left;padding:6px;border-radius:4px}
+.ac-list button:hover,.ac-list button:focus{background:var(--panel2)}
+.ac-list img,.ac-list .nocov{width:40px;height:40px;border-radius:3px;flex:none;display:grid;place-items:center;background:var(--panel2)}
+.ac-list b{display:block;font-size:15px}.ac-list small{color:var(--muted)}
+.picked{display:flex;align-items:center;gap:8px;margin:6px 0 0}.picked img{width:28px;height:28px;border-radius:3px}
+.song-av .cov{width:44px;height:44px;border-radius:4px;margin-right:4px;align-self:center}
 </style>
 </head>
 <body>
@@ -514,7 +522,7 @@ function subscribePrime(n){
   const ms=x=>toMs(x.at)||+String(x.id).split('_').pop()||0;
   S.primeUnsub=[
     f.onSnapshot(q('primechat'),r=>{const a=[];r.forEach(d=>{const x=d.data();if(x&&typeof x.text==='string')a.push({id:d.id,uid:x.uid,text:x.text.slice(0,300),at:toMs(x.at)});});a.sort((x,y)=>ms(x)-ms(y));S.pchat=a;render();},()=>{}),
-    f.onSnapshot(q('songs'),r=>{const a=[];r.forEach(d=>{const x=d.data();if(x&&typeof x.title==='string')a.push({id:d.id,uid:x.uid,title:x.title.slice(0,80),eleves:cleanOrder(x.eleves||[]),at:toMs(x.at)});});a.sort((x,y)=>ms(y)-ms(x));S.songs=a;render();},()=>{}),
+    f.onSnapshot(q('songs'),r=>{const a=[];r.forEach(d=>{const x=d.data();if(x&&typeof x.title==='string')a.push({id:d.id,uid:x.uid,title:x.title.slice(0,80),eleves:cleanOrder(x.eleves||[]),cover:typeof x.cover==='string'&&/^https:\/\//.test(x.cover)?x.cover:null,at:toMs(x.at)});});a.sort((x,y)=>ms(y)-ms(x));S.songs=a;render();},()=>{}),
     f.onSnapshot(q('songratings'),r=>{const o={};r.forEach(d=>{const x=d.data();if(x&&typeof x.song==='string')o[d.id]={uid:x.uid,song:x.song,note:Number.isInteger(x.note)?x.note:null,e:(x.e||[]).filter(k=>SONG_EC.includes(k)),text:typeof x.text==='string'?x.text.slice(0,200):''};});S.sratings=o;render();},()=>{})];
 }
 function vPrime(){
@@ -540,7 +548,9 @@ function songStats(id){const rs=Object.values(S.sratings).filter(r=>r.song===id)
 function vSongs(n){
   const reg=registered()&&!S.anon,orga=isOrga(),f=S.songForm;
   const form=!reg?'':f?`<div class="card songform"><h3>Nouvelle chanson</h3>
-      <input type="text" id="song-title" maxlength="80" placeholder="Titre (et artiste)" value="${esc(f.title||'')}" aria-label="Titre de la chanson">
+      <div class="ac"><input type="text" id="song-title" maxlength="80" placeholder="Commence à taper le titre ou l’artiste…" value="${esc(f.title||'')}" aria-label="Titre de la chanson" autocomplete="off" role="combobox" aria-expanded="${!!(S.songSugg&&S.songSugg.length)}">
+      ${S.songSugg&&S.songSugg.length?`<ul class="ac-list" role="listbox">${S.songSugg.map((x,i)=>`<li><button type="button" data-act="songPick" data-id="${i}">${x.cover?`<img src="${esc(x.cover)}" alt="" loading="lazy">`:'<span class="nocov">♪</span>'}<span><b>${esc(x.title)}</b><small>${esc(x.artist)}</small></span></button></li>`).join('')}</ul>`:''}
+      ${f.cover?`<p class="muted picked"><img src="${esc(f.cover)}" alt=""> Chanson trouvée sur Deezer</p>`:''}</div>
       <span class="sub">Qui chante ? (touche les élèves)</span>
       <div class="pool">${ids.map(id=>`<button class="chip${f.eleves.includes(id)?' focus':''}" data-act="songEl" data-id="${id}" aria-pressed="${f.eleves.includes(id)}">${av(id)}<span class="nm">${esc(C[id].name)}</span></button>`).join('')}</div>
       <div class="row"><button class="btn" data-act="songAdd" data-id="${n}">Ajouter</button><button class="linkbtn" data-act="songCancel">Annuler</button></div></div>`
@@ -550,7 +560,7 @@ function vSongs(n){
     const notes=reg?`<div class="notes">${[1,2,3,4,5,6,7,8,9,10].map(v=>`<button class="nt${mine.note===v?' on':''}" data-act="songNote" data-id="${sg.id}" data-k="${v}" aria-pressed="${mine.note===v}">${v}</button>`).join('')}</div>`:'';
     const coms=st.rs.filter(r=>r.text||r.note).map(r=>{const p=S.players[r.uid];return`<div class="cm"><span class="who"><b>${esc(p?p.name:'?')}</b>${r.note?` · ${r.note}/10`:''}${r.e.length?' '+r.e.map(k=>SONG_E.find(x=>x[0]===k)[1]).join(''):''}</span>${r.text?`<p>${esc(r.text)}</p>`:''}</div>`;}).join('');
     return`<article class="card song">
-      <div class="song-top"><div class="song-av">${sg.eleves.map(av).join('')}</div>
+      <div class="song-top"><div class="song-av">${sg.cover?`<img class="cov" src="${esc(sg.cover)}" alt="" loading="lazy">`:''}${sg.eleves.map(av).join('')}</div>
         <div class="song-t"><h3>${esc(sg.title)}</h3><span class="muted">${sg.eleves.map(id=>esc(C[id].name)).join(' & ')||'—'}</span></div>
         <div class="avg">${st.avg!=null?st.avg.toFixed(1).replace('.',','):'–'}<small>/10 · ${st.nn} note${st.nn>1?'s':''}</small></div></div>
       ${notes}<div class="rc-react">${ecs}</div>
@@ -568,10 +578,21 @@ async function pcSend(n){
 function focusChat(){const i=document.getElementById('pc-input');if(i)i.focus();}
 async function delDoc(coll,id){if(S.cmDelArm!==id){S.cmDelArm=id;render();return;}S.cmDelArm=null;
   try{await fb.fs.deleteDoc(fb.fs.doc(fb.db,coll,id));}catch(e){toast('Suppression impossible ('+errText(e)+').');render();}}
+let dzT=null,dzN=0;
+function songSearch(q){clearTimeout(dzT);q=q.trim();
+  if(q.length<2){if(S.songSugg&&S.songSugg.length){S.songSugg=[];render();}return;}
+  dzT=setTimeout(()=>{const id=++dzN,cb='__dz'+id,sc=document.createElement('script');
+    window[cb]=r=>{delete window[cb];sc.remove();if(id!==dzN||!S.songForm)return;
+      const seen=new Set();S.songSugg=((r&&r.data)||[]).map(t=>({title:String(t.title_short||t.title||'').slice(0,60),artist:String((t.artist&&t.artist.name)||'').slice(0,40),cover:t.album&&/^https:\/\//.test(t.album.cover_small||'')?t.album.cover_small:null}))
+        .filter(x=>x.title&&!seen.has(x.title+'|'+x.artist)&&seen.add(x.title+'|'+x.artist)).slice(0,6);render();};
+    sc.onerror=()=>{delete window[cb];sc.remove();};
+    sc.src='https://api.deezer.com/search/track?q='+encodeURIComponent(q)+'&limit=10&output=jsonp&callback='+cb;document.head.appendChild(sc);},280);}
+function songPick(i){const x=S.songSugg&&S.songSugg[i];if(!x||!S.songForm)return;
+  S.songForm.title=(x.title+(x.artist?' – '+x.artist:'')).slice(0,80);S.songForm.cover=x.cover;S.songSugg=[];render();}
 async function songAdd(n){
   if(!needPlayer())return;const f=S.songForm||{},t=(f.title||'').trim().slice(0,80);
   if(!t){toast('Indique le titre de la chanson.');return;}
-  try{await fb.fs.setDoc(fb.fs.doc(fb.db,'songs',S.uid+'_'+Date.now()),{uid:S.uid,prime:n,title:t,eleves:(f.eleves||[]).slice(0,4),at:fb.fs.serverTimestamp()});S.songForm=null;render();}
+  try{await fb.fs.setDoc(fb.fs.doc(fb.db,'songs',S.uid+'_'+Date.now()),Object.assign({uid:S.uid,prime:n,title:t,eleves:(f.eleves||[]).slice(0,4),at:fb.fs.serverTimestamp()},f.cover&&/^https:\/\//.test(f.cover)?{cover:f.cover}:{}));S.songForm=null;S.songSugg=[];render();}
   catch(e){toast('Chanson non ajoutée ('+errText(e)+').');}
 }
 async function songRate(id,patch){
@@ -1191,7 +1212,7 @@ document.addEventListener('change',e=>{if(e.target.id==='nospoil')setNoSpoil(e.t
   if(e.target.id==='lkanon')setLikeAnon(e.target.checked);
   if(e.target.dataset&&e.target.dataset.np)setNotifPref(e.target.dataset.np,e.target.checked);
   else if(e.target.id==='validate'){if(cleanOrder(S.me.order).length!==N){e.target.checked=false;return;}S.me.validated=e.target.checked;queueMe();toast(S.me.validated?'Classement validé ✓':'Classement dévalidé.');}});
-document.addEventListener('input',e=>{if(e.target.id==='pc-input'){S.drafts['pc']=e.target.value;return;}if(e.target.id==='song-title'&&S.songForm){S.songForm.title=e.target.value;return;}if(/^sr-/.test(e.target.id)){S.drafts[e.target.id]=e.target.value;return;}if(/^cm-/.test(e.target.id)){S.drafts[e.target.id.slice(3)]=e.target.value;return;}if(e.target.id==='pname'&&$('#pcode'))S.form.name=e.target.value;else if(e.target.id==='pcode')S.form.code=e.target.value.replace(/\D/g,'');});
+document.addEventListener('input',e=>{if(e.target.id==='pc-input'){S.drafts['pc']=e.target.value;return;}if(e.target.id==='song-title'&&S.songForm){S.songForm.title=e.target.value;S.songForm.cover=null;songSearch(e.target.value);return;}if(/^sr-/.test(e.target.id)){S.drafts[e.target.id]=e.target.value;return;}if(/^cm-/.test(e.target.id)){S.drafts[e.target.id.slice(3)]=e.target.value;return;}if(e.target.id==='pname'&&$('#pcode'))S.form.name=e.target.value;else if(e.target.id==='pcode')S.form.code=e.target.value.replace(/\D/g,'');});
 document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;if(e.target.id==='pc-input'&&!e.shiftKey){e.preventDefault();pcSend(S.primeFor);return;}
   if(e.target.id==='pcode'||(e.target.id==='pname'&&$('#pcode'))){e.preventDefault();join();}
   else if(e.target.id==='pname'){e.preventDefault();saveName();}});
@@ -1226,7 +1247,8 @@ document.addEventListener('click',e=>{
   else if(a==='pcSend')pcSend(+id);
   else if(a==='pcDel')delDoc('primechat',id);
   else if(a==='songNew'){S.songForm={title:'',eleves:[]};render();const i=$('#song-title');if(i)i.focus();}
-  else if(a==='songCancel'){S.songForm=null;render();}
+  else if(a==='songCancel'){S.songForm=null;S.songSugg=[];render();}
+  else if(a==='songPick')songPick(+id);
   else if(a==='songEl'&&S.songForm){const e=S.songForm.eleves;S.songForm.eleves=e.includes(id)?e.filter(x=>x!==id):e.length<4?e.concat(id):e;render();}
   else if(a==='songAdd')songAdd(+id);
   else if(a==='songDel')delDoc('songs',id);

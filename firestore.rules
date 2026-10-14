@@ -155,7 +155,8 @@ service cloud.firestore {
       allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
       allow update: if false;
       allow create: if isPlayer()
-        && request.resource.data.keys().hasOnly(['uid', 'prime', 'title', 'eleves', 'at'])
+        && request.resource.data.keys().hasOnly(['uid', 'prime', 'title', 'eleves', 'at', 'cover'])
+        && (!('cover' in request.resource.data) || (request.resource.data.cover is string && request.resource.data.cover.size() <= 300 && request.resource.data.cover.matches('https://.*')))
         && request.resource.data.uid == request.auth.uid
         && sid.matches(request.auth.uid + '_[0-9]+')
         && request.resource.data.prime is int
