@@ -343,6 +343,8 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .recap.hid{opacity:.55}
 .install-help{position:fixed;inset:auto 12px calc(12px + env(safe-area-inset-bottom,0px)) 12px;z-index:10;background:var(--panel);border:1px solid var(--gold);border-radius:6px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
 .install-help p{margin:0 0 8px}
+.fighter.empty{justify-content:center}.pickhint{margin:0;font-weight:700;color:var(--muted);text-align:center}
+.notifrow{flex-basis:100%;margin:4px 0 0;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -354,7 +356,7 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script type="module">
-import { firebaseConfig } from './firebase-config.js?v=7';
+import { firebaseConfig, vapidKey } from './firebase-config.js?v=8';
 
 /* ===================== Réglages ===================== */
 const LAUNCH = [2026, 9, 10];      // prime de lancement : samedi 10 octobre 2026 (mois 0-11)
@@ -425,7 +427,7 @@ function fmtLeft(ms){const t=Math.max(0,ms-Date.now()),m=Math.floor(t/60000),d=M
 
 /* ===================== état ===================== */
 const ls={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
-const S={tab:ls.get('sa14-tab')||'select',sub:ls.get('sa14-sub')||'week',sel:ids[0],mode:'reel',focus:null,
+const S={tab:ls.get('sa14-tab')||'select',sub:ls.get('sa14-sub')||'week',sel:null,mode:'reel',focus:null,
   conn:'loading',seasonExists:false,season:normSeason(null),real:normSeason(null),noSpoil:ls.get('sa14-nospoil')==='1',noNom:ls.get('sa14-nonom')!=='0',players:{},picks:{},uid:null,
   me:{name:'',order:[]},meDirty:false,save:'',nameEdit:false,
   form:{name:null,code:''},anon:true,login:'',busy:false,dragging:false,note:'',pendingOut:null,delId:null,badImg:new Set()};
@@ -575,7 +577,7 @@ function likeFiche(id){const n=likeWeek()||likeWeeks()[0];if(!n)return'';const a
 function likeActs(id,st){const n=likeWeek();if(!n||st.k==='ko'||!registered()||S.anon)return'';const my=myLikes(n),u=my.up.includes(id),d=my.down.includes(id);
   return`<button class="btn ${u?'':'ghost'}" data-act="like" data-k="up" data-id="${id}" aria-pressed="${u}">${u?'❤️ Coup de cœur ✓':'❤️ Coup de cœur'}</button><button class="btn ${d?'danger':'ghost'}" data-act="like" data-k="down" data-id="${id}" aria-pressed="${d}">${d?'🍅 Tomate ✓':'🍅 Tomate'}</button>`;}
 function vSelect(){
-  return`<div class="sel-wrap"><div class="card fighter">${fighter(S.sel)}</div>
+  return`<div class="sel-wrap"><div class="card fighter${S.sel?'':' empty'}">${S.sel&&C[S.sel]?fighter(S.sel):'<p class="pickhint">Touche un élève pour afficher sa fiche.</p>'}</div>
     <div class="sel-main"><h2>Choisis ton champion</h2><div class="sel-grid">${ids.map(tile).join('')}</div></div></div>`;
 }
 
@@ -638,7 +640,8 @@ function whoCard(){
     return`<div class="card who-card"><span>Tu joues en tant que <b>${esc(S.players[S.uid].name)}</b>${S.login?` <span class="muted">· identifiant ${esc(S.login)}</span>`:''}</span>
       <span class="row"><button class="btn ghost" data-act="editName">Changer de pseudo</button><button class="btn ghost" data-act="logout">Changer de joueur</button></span>
       <label class="check spoilck"><input type="checkbox" id="nospoil"${S.noSpoil?' checked':''}> Je regarde le prime le dimanche : masquer les résultats du samedi jusqu’à dimanche minuit</label>
-      <label class="check spoilck"><input type="checkbox" id="nonom"${S.noNom?' checked':''}> Je ne veux pas connaître les nominés avant le début du prime (samedi 21h10)</label></div>`;
+      <label class="check spoilck"><input type="checkbox" id="nonom"${S.noNom?' checked':''}> Je ne veux pas connaître les nominés avant le début du prime (samedi 21h10)</label>
+      ${notifRow()}</div>`;
   }
   const legacy=registered()&&S.anon,pre=S.form.name!=null?S.form.name:(legacy?S.players[S.uid].name:'');
   return`<div class="card"><h3>${legacy?'Protège ton joueur avec un code':'Pseudo et code pour jouer'}</h3>
@@ -1077,6 +1080,8 @@ document.addEventListener('click',e=>{
   else if(a==='player'){S.viewPlayer=id||null;render();window.scrollTo(0,0);}
   else if(a==='spoil')setNoSpoil(false);
   else if(a==='nonomOff')setNoNom(false);
+  else if(a==='notifOn')enableNotif();
+  else if(a==='notifOff')disableNotif();
   else if(a==='logout')logout();
   else if(a==='pick')savePick(t.dataset.f,id);
   else if(a==='rank'){if(editFinal()){const wasVal=S.me.validated;S.me.order=o.includes(id)?o.filter(x=>x!==id):o.concat(id);S.me.validated=false;S.resetAsk=false;queueMe();if(wasVal)toast('Classement modifié : pense à le revalider.');}}
@@ -1114,7 +1119,7 @@ async function initFirebase(){
   try{
     const [appM,authM,fs]=await Promise.all([import(FB+'firebase-app.js'),import(FB+'firebase-auth.js'),import(FB+'firebase-firestore.js')]);
     const app=appM.initializeApp(firebaseConfig),auth=authM.getAuth(app),db=fs.getFirestore(app);
-    fb={db,fs,auth,authM};
+    fb={db,fs,auth,authM,app};
     const fail=what=>err=>{S.note=`Lecture ${what} impossible (${errText(err)}).`;render();};
     fs.onSnapshot(fs.doc(db,'season','main'),snap=>{S.snapOk=true;if(S.note===BLOCK_MSG&&S.authReady)S.note='';S.seasonExists=snap.exists();setReal(normSeason(snap.exists()?snap.data():null));S.conn='ok';render();},fail('de la saison'));
     fs.onSnapshot(fs.collection(db,'players'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.name==='string'&&x.name.trim())p[d.id]={name:x.name.trim().slice(0,40),order:cleanOrder(x.order),validated:x.validated===true};});S.players=p;syncMe();render();},fail('des joueurs'));
@@ -1138,6 +1143,35 @@ async function initFirebase(){
   setTimeout(()=>{if(S.conn==='loading'||(S.conn==='ok'&&!S.authReady)){S.conn='err';S.note=BLOCK_MSG;render();}},12000);
 }
 if(location.hash==='#orga')enterOrga();
+/* ===================== notifications ===================== */
+const pushOK=()=>'Notification' in window&&'serviceWorker' in navigator&&'PushManager' in window;
+function notifOn(){return ls.get('sa14-push')==='1'&&pushOK()&&Notification.permission==='granted';}
+function notifRow(){
+  if(!vapidKey)return'';
+  if(notifOn())return`<p class="notifrow">🔔 Notification au début du prime activée sur cet appareil. <button class="linkbtn" data-act="notifOff">Désactiver</button></p>`;
+  return`<div class="row notifrow"><button class="btn ghost" data-act="notifOn">🔔 Me prévenir au début du prime</button></div>`;}
+async function enableNotif(){
+  if(!vapidKey||!fb){toast('Notifications indisponibles pour l’instant.');return;}
+  if(isIOS&&!standalone()){toast('Sur iPhone, installe d’abord l’appli (bouton en bas de page), puis active les notifications depuis l’appli.');return;}
+  if(!pushOK()){toast('Ce navigateur ne gère pas les notifications.');return;}
+  if(!registered()||S.anon){toast('Connecte-toi avec ton pseudo d’abord.');return;}
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){toast(perm==='denied'?'Notifications bloquées : autorise-les dans les réglages du navigateur pour ce site.':'Notifications non autorisées.');return;}
+    const reg=await navigator.serviceWorker.register('sw.js');await navigator.serviceWorker.ready;
+    const m=await import(FB+'firebase-messaging.js');
+    const token=await m.getToken(m.getMessaging(fb.app),{vapidKey,serviceWorkerRegistration:reg});
+    if(!token)throw new Error('pas de jeton');
+    await fb.fs.setDoc(fb.fs.doc(fb.db,'pushTokens',token),{uid:S.uid,at:fb.fs.serverTimestamp()});
+    ls.set('sa14-push','1');ls.set('sa14-pushtok',token);render();toast('C’est noté : tu seras prévenu au début de chaque prime.');
+  }catch(e){toast('Activation impossible ('+(e&&(e.code||e.message)||'erreur')+').');}
+}
+async function disableNotif(){
+  const t=ls.get('sa14-pushtok');ls.del('sa14-push');render();
+  try{if(t&&fb)await fb.fs.deleteDoc(fb.fs.doc(fb.db,'pushTokens',t));
+    const m=await import(FB+'firebase-messaging.js');await m.deleteToken(m.getMessaging(fb.app));}catch(e){}
+  ls.del('sa14-pushtok');toast('Notifications désactivées sur cet appareil.');
+}
 /* ===================== application installable ===================== */
 const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);

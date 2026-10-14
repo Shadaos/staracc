@@ -105,5 +105,15 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['anon'])
         && request.resource.data.anon is bool;
     }
+
+    // Jetons de notification : un document par appareil. Lu uniquement par le robot d'envoi (droits admin).
+    match /pushTokens/{token} {
+      allow read: if false;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.at == request.time;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
   }
 }

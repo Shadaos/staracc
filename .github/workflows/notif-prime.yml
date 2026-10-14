@@ -1,0 +1,30 @@
+# Envoie la notification « le prime commence » à tous les appareils inscrits.
+# Deux créneaux le samedi (en UTC) pour couvrir l'heure d'été et l'heure d'hiver :
+# le script n'envoie que si l'heure de Paris est entre 20h40 et 21h40, et une seule fois par samedi.
+name: Notification début du prime
+
+on:
+  schedule:
+    - cron: '45 18 * * 6'
+    - cron: '45 19 * * 6'
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Envoyer tout de suite une notification de test (ignore l'heure)"
+        type: boolean
+        default: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save --no-audit --no-fund firebase-admin@12
+      - run: node .github/scripts/notif-prime.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TEST_SEND: ${{ github.event_name == 'workflow_dispatch' && inputs.test }}
