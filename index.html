@@ -417,7 +417,7 @@ function fmtLeft(ms){const t=Math.max(0,ms-Date.now()),m=Math.floor(t/60000),d=M
 /* ===================== état ===================== */
 const ls={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
 const S={tab:ls.get('sa14-tab')||'select',sub:ls.get('sa14-sub')||'week',sel:ids[0],mode:'reel',focus:null,
-  conn:'loading',seasonExists:false,season:normSeason(null),real:normSeason(null),noSpoil:ls.get('sa14-nospoil')==='1',noNom:ls.get('sa14-nonom')==='1',players:{},picks:{},uid:null,
+  conn:'loading',seasonExists:false,season:normSeason(null),real:normSeason(null),noSpoil:ls.get('sa14-nospoil')==='1',noNom:ls.get('sa14-nonom')!=='0',players:{},picks:{},uid:null,
   me:{name:'',order:[]},meDirty:false,save:'',nameEdit:false,
   form:{name:null,code:''},anon:true,login:'',busy:false,dragging:false,note:'',pendingOut:null,delId:null,badImg:new Set()};
 let fb=null;
