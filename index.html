@@ -522,13 +522,13 @@ function errText(e){const c=e&&e.code||'';
 /* ===================== vues ===================== */
 function renderHead(){
   const s=S.season,out=outOrder(s).length,alive=N-out,cur=curWeek(s),win=winnerId(s),np=Object.keys(S.players).length;
-  const tabs=[['select','Sélection'],['mine','Mon prono'],['daily','Quotidiennes'+(S.tab!=='daily'&&hasNewRecap()?'<span class="dot" aria-label="nouveau"></span>':'')],['bracket','Tableau'],['board','Classement']];
+  const tabs=[['select','Sélection'],['mine','Mon prono'],['daily','Quotidiennes'+(S.tab!=='daily'&&hasNewRecap()?'<span class="dot" aria-label="nouveau"></span>':'')],['bracket','Tableau'],['board','Classement'],['settings','⚙️ Paramètres']];
   if(isOrga())tabs.push(['orga','Orga']);
   let banner=S.note;
   if(!banner&&S.conn==='noconfig')banner='Le site n’est pas encore relié à sa base de données : les pronos ne peuvent pas être enregistrés pour l’instant.';
   else if(!banner&&S.conn==='ok'&&!S.seasonExists)banner='La saison n’est pas encore ouverte par l’organisateur.';
   const nomSpoil=S.noNom&&S.tab!=='orga'&&(S.nomMasked||S.recaps.some(recapNomHidden))?`<p class="note spoil">Nominés masqués jusqu’au début du prime, samedi 21h10. <button class="linkbtn" data-act="nonomOff">Tout afficher</button></p>`:'';
-  const ns=registered()&&!S.anon&&S.tab!=='mine'&&S.tab!=='orga'&&ls.get('sa14-notifLater')!=='1'?notifState():'off';
+  const ns=registered()&&!S.anon&&S.tab!=='settings'&&S.tab!=='orga'&&ls.get('sa14-notifLater')!=='1'?notifState():'off';
   const nudge=['ready','ios-install','denied'].includes(ns)?`<p class="note notifnudge">🔔 Active les notifications pour être prévenu au début du prime. <button class="linkbtn" data-act="notifShow">Comment faire</button> · <button class="linkbtn" data-act="notifLater">Plus tard</button></p>`:'';
   const spoil=S.noSpoil&&S.masked&&S.tab!=='orga'?`<p class="note spoil">Anti-spoiler activé : les résultats du dernier prime sont masqués jusqu’à dimanche minuit. <button class="linkbtn" data-act="spoil">Tout afficher</button></p>`:'';
   $('#head').innerHTML=`
@@ -643,9 +643,7 @@ function whoCard(){
       <p class="muted">Pour te reconnecter, garde l’identifiant <b>${esc(S.login||'')}</b> et ton code.</p></div>`;
     return`<div class="card who-card"><span>Tu joues en tant que <b>${esc(S.players[S.uid].name)}</b>${S.login?` <span class="muted">· identifiant ${esc(S.login)}</span>`:''}</span>
       <span class="row"><button class="btn ghost" data-act="editName">Changer de pseudo</button><button class="btn ghost" data-act="logout">Changer de joueur</button></span>
-      <label class="check spoilck"><input type="checkbox" id="nospoil"${S.noSpoil?' checked':''}> Je regarde le prime le dimanche : masquer les résultats du samedi jusqu’à dimanche minuit</label>
-      <label class="check spoilck"><input type="checkbox" id="nonom"${S.noNom?' checked':''}> Je ne veux pas connaître les nominés avant le début du prime (samedi 21h10)</label>
-      ${notifRow()}</div>`;
+</div>`;
   }
   const legacy=registered()&&S.anon,pre=S.form.name!=null?S.form.name:(legacy?S.players[S.uid].name:'');
   return`<div class="card"><h3>${legacy?'Protège ton joueur avec un code':'Pseudo et code pour jouer'}</h3>
@@ -739,9 +737,22 @@ function initDrag(){
       if(next.length===N&&next.join()!==cleanOrder(S.me.order).join()){const was=S.me.validated;S.me.order=next;S.me.validated=false;queueMe();if(was)toast('Classement modifié : valide-le à nouveau pour confirmer.');}
       else render();}});
 }
+function vSettings(){
+  const reg=registered()&&!S.anon;
+  const app=standalone()?`<p>✓ Tu utilises l’appli installée.</p>`:`<p class="muted">Ajoute le site sur l’écran d’accueil de ton téléphone : il s’ouvre alors comme une vraie appli, en plein écran.</p><div class="row"><button class="btn ghost" data-act="install">📲 Installer sur mon téléphone</button></div>`;
+  return`<h2>Paramètres</h2>
+    <div class="card"><h3>Mon joueur</h3>${whoCard().replace(/^<div class="card[^"]*">/,'<div>')}</div>
+    ${reg?notifCard(true):''}
+    <div class="card"><h3>Anti-spoiler</h3>
+      <label class="check"><input type="checkbox" id="nospoil"${S.noSpoil?' checked':''}> Je regarde le prime le dimanche : masquer les résultats du samedi jusqu’à dimanche minuit</label>
+      <label class="check"><input type="checkbox" id="nonom"${S.noNom?' checked':''}> Je ne veux pas connaître les nominés avant le début du prime (samedi 21h10)</label>
+      <p class="muted">Ces réglages valent pour cet appareil.</p></div>
+    ${reg?`<div class="card"><h3>Cœurs & tomates</h3><label class="check"><input type="checkbox" id="lkanon"${anonOf(S.uid)?' checked':''}> Mes votes sont anonymes (les autres voient les totaux, pas mon nom)</label></div>`:''}
+    <div class="card"><h3>Application</h3>${app}</div>`;
+}
 function vMine(){
   const seg=[['week','Cette semaine'],['likes','❤️ / 🍅'],['final','Final']].map(([k,l])=>`<button class="seg${S.sub===k?' on':''}" data-act="sub" data-id="${k}" aria-pressed="${S.sub===k}">${l}</button>`).join('');
-  return`${S.uid&&registered()&&!S.anon?notifCard(S.notifForce):''}${whoCard()}<div class="seg-bar" role="tablist" aria-label="Type de pronostic">${seg}</div>${S.sub==='final'?vFinal():S.sub==='likes'?vLikes():vWeek()}`;
+  return`<div class="seg-bar" role="tablist" aria-label="Type de pronostic">${seg}</div>${S.sub==='final'?vFinal():S.sub==='likes'?vLikes():vWeek()}`;
 }
 
 function vBoard(){
@@ -903,7 +914,7 @@ function render(){
   document.body.classList.toggle('gated',gate);
   if(gate){$('#head').innerHTML='';$('#view').innerHTML=vGate();}
   else{renderHead();
-  const v={select:vSelect,bracket:vBracket,mine:vMine,board:vBoard,daily:vDaily,orga:vOrga}[S.tab]||vSelect;
+  const v={select:vSelect,bracket:vBracket,mine:vMine,board:vBoard,daily:vDaily,settings:vSettings,orga:vOrga}[S.tab]||vSelect;
   $('#view').innerHTML=v();}
   const sc2=document.querySelector('.bracket-scroll');if(sc2)sc2.scrollLeft=left;
   tabsScroll(tabLeft);
@@ -1086,7 +1097,8 @@ document.addEventListener('click',e=>{
   else if(a==='nonomOff')setNoNom(false);
   else if(a==='notifOn')enableNotif();
   else if(a==='notifLater'){ls.set('sa14-notifLater','1');S.notifForce=false;render();}
-  else if(a==='notifShow'){S.notifForce=true;S.tab='mine';render();window.scrollTo(0,0);}
+  else if(a==='notifShow'){S.tab='settings';S.scrollTab=true;ls.set('sa14-tab','settings');render();window.scrollTo(0,0);}
+  else if(a==='install')doInstall();
   else if(a==='notifTest')testNotif();
   else if(a==='notifOff')disableNotif();
   else if(a==='logout')logout();
@@ -1190,7 +1202,7 @@ function notifRow(){
   return`<div class="row notifrow"><button class="btn ghost" data-act="notifShow">🔔 Me prévenir au début du prime</button></div>`;}
 async function enableNotif(){
   if(!vapidKey||!fb){toast('Notifications indisponibles pour l’instant.');return;}
-  if(isIOS()&&!standalone()){S.notifForce=true;S.tab='mine';render();window.scrollTo(0,0);return;}
+  if(isIOS()&&!standalone()){S.tab='settings';render();window.scrollTo(0,0);return;}
   if(!pushOK()){toast('Ce navigateur ne gère pas les notifications.');return;}
   if(!registered()||S.anon){toast('Connecte-toi avec ton pseudo d’abord.');return;}
   try{
@@ -1220,12 +1232,13 @@ let installEvt=null;
 function showInstallBtn(){const b=$('#install-btn');if(b)b.hidden=standalone()||!(installEvt||isIOS());}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;showInstallBtn();});
 window.addEventListener('appinstalled',()=>{installEvt=null;showInstallBtn();toast('Application installée !');});
-$('#install-btn').addEventListener('click',async()=>{
-  if(installEvt){installEvt.prompt();try{await installEvt.userChoice;}catch(e){}installEvt=null;showInstallBtn();return;}
+async function doInstall(){
+  if(installEvt){installEvt.prompt();try{await installEvt.userChoice;}catch(e){}installEvt=null;showInstallBtn();render();return;}
   if($('.install-help'))return;
   const d=document.createElement('div');d.className='install-help';d.setAttribute('role','dialog');
   d.innerHTML='<p><b>Sur iPhone / iPad (Safari)</b> : touche le bouton <b>Partager</b> (carré avec une flèche), puis <b>« Sur l’écran d’accueil »</b>.</p><p>Si tu es dans Chrome ou une autre appli, ouvre d’abord le site dans Safari.</p><button class="btn" type="button">OK</button>';
-  d.querySelector('button').onclick=()=>d.remove();document.body.appendChild(d);});
+  d.querySelector('button').onclick=()=>d.remove();document.body.appendChild(d);}
+$('#install-btn').addEventListener('click',doInstall);
 showInstallBtn();
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 render();
