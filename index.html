@@ -348,6 +348,12 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .notifcard{border-color:var(--gold)}.notifcard h3{margin:0}.notifcard p{margin:0}.notifcard.on{border-color:var(--ok)}
 .steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.4}.steps .ico{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:0 4px}
 .np{display:flex;flex-direction:column;gap:6px}
+.onl{background:none;border:0;padding:0;color:var(--gold2);font:inherit;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.gdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ee08f;box-shadow:0 0 6px #4ee08f}.gdot.off{background:#6b4a52;box-shadow:none}
+.onlpanel{margin-top:8px;background:var(--panel);border:1px solid var(--gold);border-radius:6px;padding:10px 12px;max-height:50vh;overflow:auto}
+.onlhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.onlpanel ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.onlpanel li{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center}.onlpanel li small{color:var(--muted)}.onlpanel li.on small{color:#4ee08f}
 </style>
 </head>
 <body>
@@ -479,6 +485,24 @@ function netTrend(id,n){const a=likeStats(n)[id],net=a.up.length-a.down.length;
   return{net,tr:d>0?`<span class="trend up">▲${d}</span>`:d<0?`<span class="trend down">▼${-d}</span>`:''};}
 function sgn(v){return v>0?'+'+v:String(v);}
 function aliveIds(){const out=outOrder(S.season);return ids.filter(id=>!out.includes(id));}
+/* ===================== présence ===================== */
+const ONLINE_MS=5*60000;
+Object.assign(S,{presence:{},showOnline:false});
+function seenAt(u){return u===S.uid&&!S.anon?Date.now():S.presence[u]||0;}
+function onlineIds(){const now=Date.now();return Object.keys(S.players).filter(u=>{const t=seenAt(u);return t&&now-t<ONLINE_MS;});}
+function seenTxt(ms){if(!ms)return'jamais vu';const m=(Date.now()-ms)/60000;
+  if(m<ONLINE_MS/60000)return'en ligne';if(m<60)return'il y a '+Math.floor(m)+' min';const h=m/60;if(h<24)return'il y a '+Math.floor(h)+' h';
+  const d=Math.floor(h/24);return d===1?'hier':'il y a '+d+' jours';}
+function onlinePanel(){
+  const rows=Object.entries(S.players).map(([u,p])=>({u,name:p.name,t:seenAt(u)})).sort((a,b)=>b.t-a.t||a.name.localeCompare(b.name,'fr'));
+  return`<div class="onlpanel" role="dialog" aria-label="Joueurs en ligne"><div class="onlhead"><b>Joueurs</b><button class="linkbtn" data-act="online">Fermer</button></div>
+    <ul>${rows.map(r=>{const on=r.t&&Date.now()-r.t<ONLINE_MS;return`<li class="${on?'on':''}"><i class="gdot${on?'':' off'}"></i><span>${esc(r.name)}${r.u===S.uid?' (toi)':''}</span><small>${esc(seenTxt(r.t))}</small></li>`;}).join('')}</ul></div>`;}
+let presTimer=null;
+async function beat(){if(!fb||!S.uid||S.anon||!registered()||document.visibilityState!=='visible')return;
+  try{await fb.fs.setDoc(fb.fs.doc(fb.db,'presence',S.uid),{at:fb.fs.serverTimestamp()});}catch(e){}}
+function startPresence(){if(presTimer)return;beat();presTimer=setInterval(beat,2*60000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')beat();});
+  setInterval(()=>{if(S.showOnline||document.querySelector('.onl'))render();},60000);}
 /* ===================== quotidiennes ===================== */
 const REACT=[['love','😍'],['lol','😂'],['wow','😱'],['sad','😢'],['fire','🔥'],['clap','👏']];
 const RCODES=REACT.map(r=>r[0]);
@@ -536,7 +560,7 @@ function renderHead(){
   const spoil=S.noSpoil&&S.masked&&S.tab!=='orga'?`<p class="note spoil">Anti-spoiler activé : les résultats du dernier prime sont masqués jusqu’à dimanche minuit. <button class="linkbtn" data-act="spoil">Tout afficher</button></p>`:'';
   $('#head').innerHTML=`
     <div class="brand"><h1>Pronos <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z"/></svg><em>Star Ac’</em></h1>
-      <span class="meta">Saison 14 · ${win?'Vainqueur : '+esc(C[win].name):alive+' en lice · semaine '+cur} · ${np} joueur${np>1?'s':''}</span></div>
+      <span class="meta">Saison 14 · ${win?'Vainqueur : '+esc(C[win].name):alive+' en lice · semaine '+cur} · ${np} joueur${np>1?'s':''} · <button class="onl" data-act="online" aria-expanded="${!!S.showOnline}"><i class="gdot"></i>${onlineIds().length} en ligne</button></span></div>${S.showOnline?onlinePanel():''}
     <div class="when"><span class="pill">Nominations <b>${esc(nextDayShort(3))}</b></span><span class="pill">Prime <b>${esc(nextDayShort(6))}</b></span></div>
     <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-act="tab" data-id="${k}">${l}</button>`).join('')}</nav>
     ${banner?`<p class="note">${esc(banner)}</p>`:''}${spoil}${nomSpoil}${nudge}`;
@@ -1099,6 +1123,7 @@ document.addEventListener('click',e=>{
   else if(a==='player'){S.viewPlayer=id||null;render();window.scrollTo(0,0);}
   else if(a==='spoil')setNoSpoil(false);
   else if(a==='nonomOff')setNoNom(false);
+  else if(a==='online'){S.showOnline=!S.showOnline;render();}
   else if(a==='notifOn')enableNotif();
   else if(a==='notifLater'){ls.set('sa14-notifLater','1');S.notifForce=false;render();}
   else if(a==='notifShow'){S.tab='settings';S.scrollTab=true;ls.set('sa14-tab','settings');render();window.scrollTo(0,0);}
@@ -1145,8 +1170,9 @@ async function initFirebase(){
     fb={db,fs,auth,authM,app};
     const fail=what=>err=>{S.note=`Lecture ${what} impossible (${errText(err)}).`;render();};
     fs.onSnapshot(fs.doc(db,'season','main'),snap=>{S.snapOk=true;if(S.note===BLOCK_MSG&&S.authReady)S.note='';S.seasonExists=snap.exists();setReal(normSeason(snap.exists()?snap.data():null));S.conn='ok';render();},fail('de la saison'));
-    fs.onSnapshot(fs.collection(db,'players'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.name==='string'&&x.name.trim())p[d.id]={name:x.name.trim().slice(0,40),order:cleanOrder(x.order),validated:x.validated===true};});S.players=p;syncMe();render();},fail('des joueurs'));
+    fs.onSnapshot(fs.collection(db,'players'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.name==='string'&&x.name.trim())p[d.id]={name:x.name.trim().slice(0,40),order:cleanOrder(x.order),validated:x.validated===true};});S.players=p;syncMe();if(registered()&&!S.anon)startPresence();render();},fail('des joueurs'));
     fs.onSnapshot(fs.collection(db,'picks'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&Number.isInteger(x.week))p[x.week+'_'+x.uid]={uid:x.uid,week:x.week,elim:C[x.elim]?x.elim:null,immune:C[x.immune]?x.immune:null};});S.picks=p;render();},fail('des choix'));
+    fs.onSnapshot(fs.collection(db,'presence'),q=>{const r={};q.forEach(d=>{const t=toMs(d.data().at);if(t)r[d.id]=t;});S.presence=r;render();},()=>{});
     fs.onSnapshot(fs.collection(db,'likes'),q=>{const r={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&Number.isInteger(x.week))r[x.week+'_'+x.uid]={uid:x.uid,week:x.week,up:cleanOrder(x.up).slice(0,LK_MAX),down:cleanOrder(x.down).slice(0,LK_MAX)};});S.likes=r;render();},()=>{});
     fs.onSnapshot(fs.collection(db,'likeprefs'),q=>{const r={};q.forEach(d=>{const x=d.data();if(x&&x.anon===true)r[d.id]=true;});S.likePrefs=r;render();},()=>{});
     fs.onSnapshot(fs.doc(db,'season','recaps'),snap=>{const d=snap.exists()?snap.data():{};S.recapHidden=Array.isArray(d.hidden)?d.hidden.filter(x=>typeof x==='string'):[];render();},()=>{});

@@ -125,5 +125,13 @@ service cloud.firestore {
         && request.resource.data.thread is bool
         && request.resource.data.all is bool;
     }
+
+    // Présence : dernière visite de chaque joueur (pour « X en ligne »).
+    match /presence/{uid} {
+      allow read: if true;
+      allow write: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['at'])
+        && request.resource.data.at == request.time;
+    }
   }
 }
