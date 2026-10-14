@@ -815,7 +815,7 @@ function baroBlock(){
 function vDaily(){
   if(!S.recapLoaded){loadRecaps();return`<h2>Les quotidiennes</h2><div class="card"><p class="muted">Chargement…</p></div>`;}
   const orga=isOrga();
-  const list=S.recaps.filter(r=>(orga||!S.recapHidden.includes(r.id))&&!recapSpoiler(r.id)&&!recapNomHidden(r));
+  const list=S.recaps.filter(r=>(orga||!S.recapHidden.includes(r.id))&&!recapSpoiler(r.id));
   const n=newestRecap();if(n&&n>(ls.get('sa14-recapSeen')||''))ls.set('sa14-recapSeen',n);
   const spoilN=S.recaps.filter(r=>recapSpoiler(r.id)&&!S.recapHidden.includes(r.id)).length;
   let html=`<h2>Les quotidiennes</h2>
@@ -826,7 +826,7 @@ function vDaily(){
   let wkCur=null;
   list.forEach(r=>{const w=recapWeek(r.id);
     if(w!==wkCur){wkCur=w;html+=`<h3 class="dweek">${w?'Semaine '+w:'Lancement'}</h3>`;}
-    html+=recapCard(r,orga);});
+    html+=recapNomHidden(r)?`<article class="card recap hid"><div class="rc-h"><span class="rc-date">${esc(recapLabel(r.id))}</span></div><p class="muted">Résumé masqué : il révèle les nominés de la semaine (option anti-spoiler activée).</p><div class="row"><button class="btn ghost" data-act="nonomOff">Afficher les nominés et ce résumé</button></div></article>`:recapCard(r,orga);});
   return html;
 }
 function recapCard(r,orga){
