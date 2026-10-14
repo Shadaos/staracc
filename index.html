@@ -368,7 +368,7 @@ const N=ids.length;
 function cleanOrder(o){const seen=new Set();return(Array.isArray(o)?o:[]).filter(id=>C[id]&&!seen.has(id)&&seen.add(id));}
 function toMs(v){if(v==null)return null;if(typeof v==='number')return v;if(typeof v.toMillis==='function')return v.toMillis();return null;}
 function normSeason(d){const s=d&&typeof d==='object'?d:{};
-  const weeks={};if(s.weeks&&typeof s.weeks==='object')Object.keys(s.weeks).forEach(k=>{if(+k>=0){const w=s.weeks[k]||{};weeks[String(+k)]={immune:C[w.immune]?w.immune:null,nominees:cleanOrder(w.nominees),out:cleanOrder(w.out)};}});
+  const weeks={};if(s.weeks&&typeof s.weeks==='object')Object.keys(s.weeks).forEach(k=>{if(+k>=0){const w=s.weeks[k]||{};weeks[String(+k)]={immune:C[w.immune]?w.immune:null,nominees:cleanOrder(w.nominees),out:cleanOrder(w.out),quit:cleanOrder(w.quit)};}});
   const locks={};if(s.locks&&typeof s.locks==='object')Object.keys(s.locks).forEach(k=>{const m=toMs(s.locks[k]);if(m)locks[k]=m;});
   return{rankingOpen:s.rankingOpen!==false,weeks,locks};}
 function maskSeason(s,now){
@@ -377,8 +377,8 @@ function maskSeason(s,now){
     if(w.out&&w.out.length)hidden++;w.out=[];w.immune=null;}});
   v.locks=s.locks;return{v,hidden};}
 function weekKeys(s){return Object.keys(s.weeks).map(Number).filter(n=>n>0).sort((a,b)=>a-b);}
-function wk(s,n){const w=s.weeks[String(n)]||{};return{immune:C[w.immune]?w.immune:null,nominees:cleanOrder(w.nominees),out:cleanOrder(w.out)};}
-function outOrder(s){const o=[];weekKeys(s).forEach(n=>wk(s,n).out.forEach(id=>{if(!o.includes(id))o.push(id);}));return o;}
+function wk(s,n){const w=s.weeks[String(n)]||{};return{immune:C[w.immune]?w.immune:null,nominees:cleanOrder(w.nominees),out:cleanOrder(w.out),quit:cleanOrder(w.quit)};}
+function outOrder(s){const o=[];weekKeys(s).forEach(n=>{const w=wk(s,n);w.quit.concat(w.out).forEach(id=>{if(!o.includes(id))o.push(id);});});return o;}
 function curWeek(s){const ks=weekKeys(s);for(const n of ks){if(wk(s,n).out.length===0)return n;}return ks.length?ks[ks.length-1]+1:1;}
 function places(s){const out=outOrder(s),P={};out.forEach((id,i)=>{P[id]=N-i;});const rem=ids.filter(id=>!out.includes(id));if(rem.length===1)P[rem[0]]=1;return P;}
 function winnerId(s){const out=outOrder(s);const rem=ids.filter(id=>!out.includes(id));return rem.length===1?rem[0]:null;}
@@ -417,7 +417,7 @@ function fmtLeft(ms){const t=Math.max(0,ms-Date.now()),m=Math.floor(t/60000),d=M
 /* ===================== état ===================== */
 const ls={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
 const S={tab:ls.get('sa14-tab')||'select',sub:ls.get('sa14-sub')||'week',sel:ids[0],mode:'reel',focus:null,
-  conn:'loading',seasonExists:false,season:normSeason(null),real:normSeason(null),noSpoil:ls.get('sa14-nospoil')==='1',players:{},picks:{},uid:null,
+  conn:'loading',seasonExists:false,season:normSeason(null),real:normSeason(null),noSpoil:ls.get('sa14-nospoil')==='1',noNom:ls.get('sa14-nonom')==='1',players:{},picks:{},uid:null,
   me:{name:'',order:[]},meDirty:false,save:'',nameEdit:false,
   form:{name:null,code:''},anon:true,login:'',busy:false,dragging:false,note:'',pendingOut:null,delId:null,badImg:new Set()};
 let fb=null;
@@ -436,7 +436,7 @@ document.addEventListener('error',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&
 
 function status(id){
   const s=S.season;
-  for(const n of weekKeys(s)){if(wk(s,n).out.includes(id))return{k:'ko',week:n,place:places(s)[id]};}
+  for(const n of weekKeys(s)){const w=wk(s,n);if(w.out.includes(id)||w.quit.includes(id))return{k:'ko',week:n,place:places(s)[id],quit:w.quit.includes(id)};}
   if(winnerId(s)===id)return{k:'win'};
   const cur=curWeek(s);
   if(wk(s,cur-1).immune===id)return{k:'imm'};
@@ -497,7 +497,7 @@ function recapLabel(id){const{y,m,d}=recapDate(id);const t=new Date(Date.UTC(y,m
 // anti-spoiler : la quotidienne du dimanche revient sur le prime du samedi ; masquée jusqu'à dimanche minuit
 function recapSpoiler(id){if(!S.noSpoil)return false;const{y,m,d}=recapDate(id);if(new Date(Date.UTC(y,m,d)).getUTCDay()!==0)return false;
   return Date.now()<Date.UTC(y,m,d+1,0-parisOffset(y,m,d+1),0);}
-function newestRecap(){const r=S.recaps.find(x=>!S.recapHidden.includes(x.id)&&!recapSpoiler(x.id));return r?r.id:'';}
+function newestRecap(){const r=S.recaps.find(x=>!S.recapHidden.includes(x.id)&&!recapSpoiler(x.id)&&!recapNomHidden(x));return r?r.id:'';}
 function hasNewRecap(){const n=newestRecap();return!!n&&n>(ls.get('sa14-recapSeen')||'');}
 function reactCounts(rid){const c={},mine=new Set();Object.values(S.reacts).forEach(x=>{if(x.recap!==rid)return;x.e.forEach(k=>{c[k]=(c[k]||0)+1;});if(x.uid===S.uid)x.e.forEach(k=>mine.add(k));});return{c,mine};}
 function cmTime(c){const ms=c.at||+c.id.split('_').pop();if(!ms)return'';const d=new Date(ms),now=Date.now(),diff=(now-ms)/60000;
@@ -514,22 +514,29 @@ function renderHead(){
   let banner=S.note;
   if(!banner&&S.conn==='noconfig')banner='Le site n’est pas encore relié à sa base de données : les pronos ne peuvent pas être enregistrés pour l’instant.';
   else if(!banner&&S.conn==='ok'&&!S.seasonExists)banner='La saison n’est pas encore ouverte par l’organisateur.';
+  const nomSpoil=S.noNom&&S.tab!=='orga'&&(S.nomMasked||S.recaps.some(recapNomHidden))?`<p class="note spoil">Nominés masqués jusqu’au début du prime, samedi 21h10. <button class="linkbtn" data-act="nonomOff">Tout afficher</button></p>`:'';
   const spoil=S.noSpoil&&S.masked&&S.tab!=='orga'?`<p class="note spoil">Anti-spoiler activé : les résultats du dernier prime sont masqués jusqu’à dimanche minuit. <button class="linkbtn" data-act="spoil">Tout afficher</button></p>`:'';
   $('#head').innerHTML=`
     <div class="brand"><h1>Pronos <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z"/></svg><em>Star Ac’</em></h1>
       <span class="meta">Saison 14 · ${win?'Vainqueur : '+esc(C[win].name):alive+' en lice · semaine '+cur} · ${np} joueur${np>1?'s':''}</span></div>
     <div class="when"><span class="pill">Nominations <b>${esc(nextDayShort(3))}</b></span><span class="pill">Prime <b>${esc(nextDayShort(6))}</b></span></div>
     <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-act="tab" data-id="${k}">${l}</button>`).join('')}</nav>
-    ${banner?`<p class="note">${esc(banner)}</p>`:''}${spoil}`;
+    ${banner?`<p class="note">${esc(banner)}</p>`:''}${spoil}${nomSpoil}`;
 }
 function tile(id){
-  const c=C[id],st=status(id),lab=st.k==='ko'?'KO · n°'+st.place:lbl(st.k,id);
+  const c=C[id],st=status(id),lab=st.k==='ko'?(st.quit?'Abandon':'KO · n°'+st.place):lbl(st.k,id);
   return`<button class="tile st-${st.k}" data-act="sel" data-id="${id}" aria-pressed="${S.sel===id}">${av(id)}<span class="nm">${esc(c.name)}</span><span class="st">${lab}</span></button>`;
 }
 function stat(label,val,pct,gold){
   return`<div class="stat"><div class="lbl"><span>${label}</span><span>${val}</span></div><div class="hp${gold?' gold':''}"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div></div>`;
 }
-function viewSeason(){if(!S.noSpoil){S.masked=0;return S.real;}const r=maskSeason(S.real,Date.now());S.masked=r.hidden;return r.v;}
+function primeStart(n){const y=LAUNCH[0],m=LAUNCH[1],d=LAUNCH[2]+7*n;return Date.UTC(y,m,d,21-parisOffset(y,m,d),10);}
+function viewSeason(){let v=S.real;S.masked=0;S.nomMasked=0;
+  if(S.noSpoil){const r=maskSeason(S.real,Date.now());S.masked=r.hidden;v=r.v;}
+  if(S.noNom){const now=Date.now();Object.keys(v.weeks).forEach(k=>{const w=v.weeks[k];if(w.nominees&&w.nominees.length&&now<primeStart(+k)){if(v===S.real)v=JSON.parse(JSON.stringify(S.real));v.weeks[k].nominees=[];S.nomMasked++;}});}
+  return v;}
+function recapNomHidden(r){if(!S.noNom)return false;const w=recapWeek(r.id);if(Date.now()>=primeStart(w))return false;
+  return S.recaps.some(x=>x.tag==='nominations'&&recapWeek(x.id)===w&&x.id<=r.id);}
 function weekOpen(n){return Date.now()<lockAt(S.season,n);}
 function myPick(n){return S.uid?S.picks[n+'_'+S.uid]||null:null;}
 const TF1='https://www.tf1.fr/';
@@ -544,7 +551,7 @@ function fighter(id){
   if(open&&st.k==='nom')acts+=`<button class="btn ${p.elim===id?'danger':'ghost'}" data-act="pick" data-f="elim" data-id="${id}">${p.elim===id?`Tu ${PR(id)} vois partir ✓`:`Je ${PR(id)} vois partir`}</button>`;
   if(open&&st.k!=='ko'&&st.k!=='win')acts+=`<button class="btn ghost" data-act="pick" data-f="immune" data-id="${id}">${p.immune===id?`Tu ${PR(id)} vois immunisé${E(id)} ✓`:`Je ${PR(id)} vois immunisé${E(id)}`}</button>`;
   return`<div class="big">${av(id)}<div><h2>${esc(c.name)}</h2>${c.age?`<span class="muted">${c.age} ans</span><br>`:''}<span class="strow"><span class="status ${st.k}">${lbl(st.k,id)}</span><a class="btn ghost tf1" href="${tf1Url(id)}" target="_blank" rel="noopener">Sa page TF1 ↗</a></span></div></div>
-    ${st.k==='ko'?`<p class="muted kotxt">Éliminé${E(id)} en semaine ${st.week}, à la place n°${st.place}.</p>`:''}
+    ${st.k==='ko'?`<p class="muted kotxt">${st.quit?'A quitté l’aventure':'Éliminé'+E(id)} en semaine ${st.week}, à la place n°${st.place}.</p>`:''}
     <p class="fmini">Cote <b>${g.voters?winPct+' %':'—'}</b> · Moy. groupe <b>${avg?avg.toFixed(1).replace('.',','):'—'}</b> · Ton prono <b>${mi>-1?'n°'+(mi+1):'—'}</b></p>
     ${stat('Cote victoire',g.voters?winPct+' %':'—',winPct,true)}
     ${stat('Place moyenne du groupe',avg?avg.toFixed(1).replace('.',','):'—',avg?(N-avg)/(N-1)*100:0)}
@@ -576,8 +583,8 @@ function colsReal(){
   let alive=ids.slice();const cols=[];let last=0,pending=false;
   weeks.forEach(n=>{const w=wk(s,n),imm=wk(s,n-1).immune,done=w.out.length>0;
     cols.push({label:'Semaine '+n,sub:alive.length+' en lice',now:!done&&n===cur,
-      chips:alive.map(id=>({id,st:w.out.includes(id)?'ko':imm===id?'imm':w.nominees.includes(id)?'nom':'in'}))});
-    alive=alive.filter(id=>!w.out.includes(id));last=n;if(!done)pending=true;});
+      chips:alive.map(id=>({id,st:w.out.includes(id)||w.quit.includes(id)?'ko':imm===id?'imm':w.nominees.includes(id)?'nom':'in'}))});
+    alive=alive.filter(id=>!w.out.includes(id)&&!w.quit.includes(id));last=n;if(!done)pending=true;});
   if(win){cols.push({label:'Vainqueur',chips:[{id:win,st:'win'}]});return cols;}
   let c=alive.length-(pending?1:0),n=last+1;
   while(c>=2){cols.push({label:'Semaine '+n,sub:c+' en lice',fut:true,chips:Array(c).fill(null)});c--;n++;}
@@ -621,7 +628,8 @@ function whoCard(){
       <p class="muted">Pour te reconnecter, garde l’identifiant <b>${esc(S.login||'')}</b> et ton code.</p></div>`;
     return`<div class="card who-card"><span>Tu joues en tant que <b>${esc(S.players[S.uid].name)}</b>${S.login?` <span class="muted">· identifiant ${esc(S.login)}</span>`:''}</span>
       <span class="row"><button class="btn ghost" data-act="editName">Changer de pseudo</button><button class="btn ghost" data-act="logout">Changer de joueur</button></span>
-      <label class="check spoilck"><input type="checkbox" id="nospoil"${S.noSpoil?' checked':''}> Je regarde le prime le dimanche : masquer les résultats du samedi jusqu’à dimanche minuit</label></div>`;
+      <label class="check spoilck"><input type="checkbox" id="nospoil"${S.noSpoil?' checked':''}> Je regarde le prime le dimanche : masquer les résultats du samedi jusqu’à dimanche minuit</label>
+      <label class="check spoilck"><input type="checkbox" id="nonom"${S.noNom?' checked':''}> Je ne veux pas connaître les nominés avant le début du prime (samedi 21h10)</label></div>`;
   }
   const legacy=registered()&&S.anon,pre=S.form.name!=null?S.form.name:(legacy?S.players[S.uid].name:'');
   return`<div class="card"><h3>${legacy?'Protège ton joueur avec un code':'Pseudo et code pour jouer'}</h3>
@@ -666,7 +674,7 @@ function vWeek(){
       <p class="muted">Tes choix sont enregistrés dès que tu touches un élève, jusqu’au ${esc(fmtLock(lk))}. ${SC.elim} points par bon choix.</p>
       ${registered()?'':'<p class="muted">Choisis d’abord ton pseudo ci-dessus.</p>'}</div>`;
   const elim=`<div class="card"><h3>Qui sera éliminé ?</h3>
-      ${w.nominees.length?`<div class="pick-grid">${w.nominees.map(id=>pickBtn(cur,'elim',id,p.elim===id,!can)).join('')}</div>`
+      ${w.nominees.length?`<div class="pick-grid">${w.nominees.filter(id=>alive.includes(id)).map(id=>pickBtn(cur,'elim',id,p.elim===id,!can)).join('')}</div>`
         :`<p class="muted">Les nominés sont annoncés ${esc(nextDay(3))}. Reviens alors choisir celui qui quitte le château.</p>`}</div>`;
   const imm=`<div class="card"><h3>Qui sera immunisé ?</h3><p class="muted">L’élève protégé des nominations la semaine prochaine, désigné au prime de samedi.</p>
       <div class="pick-grid">${alive.map(id=>pickBtn(cur,'immune',id,p.immune===id,!can)).join('')}</div></div>`;
@@ -795,7 +803,7 @@ function baroBlock(){
 function vDaily(){
   if(!S.recapLoaded){loadRecaps();return`<h2>Les quotidiennes</h2><div class="card"><p class="muted">Chargement…</p></div>`;}
   const orga=isOrga();
-  const list=S.recaps.filter(r=>(orga||!S.recapHidden.includes(r.id))&&!recapSpoiler(r.id));
+  const list=S.recaps.filter(r=>(orga||!S.recapHidden.includes(r.id))&&!recapSpoiler(r.id)&&!recapNomHidden(r));
   const n=newestRecap();if(n&&n>(ls.get('sa14-recapSeen')||''))ls.set('sa14-recapSeen',n);
   const spoilN=S.recaps.filter(r=>recapSpoiler(r.id)&&!S.recapHidden.includes(r.id)).length;
   let html=`<h2>Les quotidiennes</h2>
@@ -843,11 +851,12 @@ function vOrga(){
     <div class="row"><button class="btn" data-act="initSeason">Ouvrir la saison</button></div></div>`;
   let week;
   if(win)week=`<div class="card"><h3>Saison terminée</h3><p>Vainqueur : ${esc(C[win].name)}.</p></div>`;
-  else{const cand=w.nominees.length?w.nominees:alive,lk=lockAt(s,cur);
+  else{const cand=(w.nominees.length?w.nominees:alive).filter(id=>alive.includes(id)),lk=lockAt(s,cur);
     week=`<div class="card"><h3>Semaine ${cur}</h3>
       <p class="muted">Choix des joueurs fermés le ${esc(fmtLock(lk))}.</p>
       <span class="sub">Immunisé cette semaine (désigné au prime précédent)</span>${pickRow(alive,id=>prevImm===id,'setPrevImm')}
       <span class="sub">Nominés (mercredi)</span>${S.autoNomWeeks.has(cur)?`<p class="note">Remplis automatiquement d’après le résumé de la quotidienne. Vérifie-les : touche un élève pour l’ajouter ou le retirer, ta liste remplacera alors la liste automatique.</p>`:''}${pickRow(alive,id=>w.nominees.includes(id),'nominee',id=>prevImm===id)}
+      <span class="sub">Abandon en cours de semaine (ne compte pas comme l’éliminé, ne rapporte aucun point)</span>${w.quit.length?`<div class="pool">${w.quit.map(id=>`<button class="chip focus" data-act="quit" data-id="${id}" aria-pressed="true">${av(id)}<span class="nm">${esc(C[id].name)} ✕</span></button>`).join('')}</div>`:''}${pickRow(alive,()=>false,'quit')}
       <span class="sub">Prime de samedi · immunisé pour la semaine suivante</span>${pickRow(alive,id=>w.immune===id,'setImm',id=>S.pendingOut===id||w.out.includes(id))}
       <span class="sub">Prime de samedi · éliminé</span>${pickRow(cand,id=>S.pendingOut===id,'pendOut',id=>w.immune===id)}
       <div class="row"><button class="btn danger" data-act="confirmOut"${S.pendingOut?'':' disabled'}>${S.pendingOut?'Confirmer le KO de '+esc(C[S.pendingOut].name):'Choisis l’éliminé'}</button></div>
@@ -1013,18 +1022,21 @@ async function toggleRecapHidden(rid){
 async function saveSeason(mut){
   if(!fb)return;
   const next=JSON.parse(JSON.stringify(S.real));mut(next);
+  [...S.autoNomWeeks].forEach(n=>{const w=next.weeks[String(n)],a=S.autoNoms[String(n)];if(w&&a&&JSON.stringify(cleanOrder(w.nominees))===JSON.stringify(a))w.nominees=[];});
   const prev=S.realRaw;setReal(normSeason(next));render();
   try{await fb.fs.setDoc(fb.fs.doc(fb.db,'season','main'),seasonDoc(next));}
   catch(e){setReal(prev||normSeason(null));render();toast(errText(e)==='refusé'?'Refusé : ton identifiant n’est pas encore dans les règles Firestore.':'Non enregistré ('+errText(e)+').');}
 }
-function editWeek(n,fn){saveSeason(s=>{const k=String(n);s.weeks[k]=Object.assign({immune:null,nominees:[],out:[]},s.weeks[k]);fn(s.weeks[k]);});}
+function editWeek(n,fn){saveSeason(s=>{const k=String(n);s.weeks[k]=Object.assign({immune:null,nominees:[],out:[],quit:[]},s.weeks[k]);fn(s.weeks[k]);});}
 
 /* ===================== actions ===================== */
 function enterOrga(){if(!isOrga()){render();return;}S.tab='orga';ls.set('sa14-tab','orga');
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0);}
 window.addEventListener('hashchange',()=>{if(location.hash==='#orga')enterOrga();});
 function setNoSpoil(v){S.noSpoil=v;ls.set('sa14-nospoil',v?'1':'0');S.season=viewSeason();render();}
+function setNoNom(v){S.noNom=v;ls.set('sa14-nonom',v?'1':'0');S.season=viewSeason();render();}
 document.addEventListener('change',e=>{if(e.target.id==='nospoil')setNoSpoil(e.target.checked);
+  if(e.target.id==='nonom')setNoNom(e.target.checked);
   if(e.target.id==='lkanon')setLikeAnon(e.target.checked);
   else if(e.target.id==='validate'){if(cleanOrder(S.me.order).length!==N){e.target.checked=false;return;}S.me.validated=e.target.checked;queueMe();toast(S.me.validated?'Classement validé ✓':'Classement dévalidé.');}});
 document.addEventListener('input',e=>{if(/^cm-/.test(e.target.id)){S.drafts[e.target.id.slice(3)]=e.target.value;return;}if(e.target.id==='pname'&&$('#pcode'))S.form.name=e.target.value;else if(e.target.id==='pcode')S.form.code=e.target.value.replace(/\D/g,'');});
@@ -1055,6 +1067,7 @@ document.addEventListener('click',e=>{
   else if(a==='join')join();
   else if(a==='player'){S.viewPlayer=id||null;render();window.scrollTo(0,0);}
   else if(a==='spoil')setNoSpoil(false);
+  else if(a==='nonomOff')setNoNom(false);
   else if(a==='logout')logout();
   else if(a==='pick')savePick(t.dataset.f,id);
   else if(a==='rank'){if(editFinal()){const wasVal=S.me.validated;S.me.order=o.includes(id)?o.filter(x=>x!==id):o.concat(id);S.me.validated=false;S.resetAsk=false;queueMe();if(wasVal)toast('Classement modifié : pense à le revalider.');}}
@@ -1073,6 +1086,7 @@ document.addEventListener('click',e=>{
   else if(a==='setImm'){editWeek(curWeek(s),w=>{w.immune=w.immune===id?null:id;});}
   else if(a==='nominee'){editWeek(curWeek(s),w=>{const nm=cleanOrder(w.nominees);w.nominees=nm.includes(id)?nm.filter(x=>x!==id):nm.concat(id);});}
   else if(a==='pendOut'){S.pendingOut=S.pendingOut===id?null:id;render();}
+  else if(a==='quit'){editWeek(curWeek(S.real),w=>{const q=cleanOrder(w.quit);w.quit=q.includes(id)?q.filter(x=>x!==id):q.concat(id);});}
   else if(a==='confirmOut'){const k=S.pendingOut;if(k){S.pendingOut=null;editWeek(curWeek(s),w=>{w.out=[k];});}}
   else if(a==='lock'){saveSeason(x=>{x.rankingOpen=!x.rankingOpen;});}
   else if(a==='undo'){const ks=weekKeys(s).filter(n=>wk(s,n).out.length);if(ks.length){const n=String(ks[ks.length-1]);
