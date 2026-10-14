@@ -133,5 +133,53 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['at'])
         && request.resource.data.at == request.time;
     }
+
+    // Onglet Prime : chat en direct.
+    match /primechat/{mid} {
+      allow read: if true;
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update: if false;
+      allow create: if isPlayer()
+        && request.resource.data.keys().hasOnly(['uid', 'prime', 'text', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && mid.matches(request.auth.uid + '_[0-9]+')
+        && request.resource.data.prime is int
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 300
+        && request.resource.data.at == request.time;
+    }
+
+    // Onglet Prime : chansons ajoutées par les joueurs.
+    match /songs/{sid} {
+      allow read: if true;
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update: if false;
+      allow create: if isPlayer()
+        && request.resource.data.keys().hasOnly(['uid', 'prime', 'title', 'eleves', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && sid.matches(request.auth.uid + '_[0-9]+')
+        && request.resource.data.prime is int
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 80
+        && request.resource.data.eleves is list && request.resource.data.eleves.size() <= 4
+        && request.resource.data.eleves.hasOnly(['amel','antoine','brieuc','cameron','elija','felix','isabella','khalil','kylian','leeloo','maud','melina','morgan','noemie','tracy','ydriss','zoe'])
+        && request.resource.data.at == request.time;
+    }
+
+    // Onglet Prime : note sur 10, emojis et avis de chaque joueur sur une chanson.
+    match /songratings/{rid} {
+      allow read: if true;
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create, update: if isPlayer()
+        && request.resource.data.keys().hasOnly(['uid', 'song', 'prime', 'note', 'e', 'text'])
+        && request.resource.data.uid == request.auth.uid
+        && rid == request.resource.data.song + '_' + request.auth.uid
+        && request.resource.data.prime is int
+        && (request.resource.data.note == null
+            || (request.resource.data.note is int && request.resource.data.note >= 1 && request.resource.data.note <= 10))
+        && request.resource.data.e is list && request.resource.data.e.size() <= 4
+        && request.resource.data.e.hasOnly(['fire', 'up', 'meh', 'down'])
+        && request.resource.data.text is string && request.resource.data.text.size() <= 200;
+    }
   }
 }
