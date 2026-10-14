@@ -469,10 +469,16 @@ function aliveIds(){const out=outOrder(S.season);return ids.filter(id=>!out.incl
 const REACT=[['love','😍'],['lol','😂'],['wow','😱'],['sad','😢'],['fire','🔥'],['clap','👏']];
 const RCODES=REACT.map(r=>r[0]);
 Object.assign(S,{recaps:[],recapLoaded:false,recapErr:false,recapAt:0,recapHidden:[],reacts:{},comments:[],openCm:new Set(),drafts:{},cmDelArm:null});
+S.autoNoms={};S.autoNomWeeks=new Set();S.realRaw=null;
+function withAuto(raw){const v=JSON.parse(JSON.stringify(raw));S.autoNomWeeks=new Set();
+  Object.keys(S.autoNoms).forEach(k=>{const w=v.weeks[k]||(v.weeks[k]={immune:null,nominees:[],out:[]});
+    if(!w.nominees.length&&!w.out.length){w.nominees=S.autoNoms[k].slice();S.autoNomWeeks.add(+k);}});
+  return v;}
+function setReal(raw){S.realRaw=raw;S.real=withAuto(raw);S.season=viewSeason();}
 function cleanRecap(x){
   if(!x||typeof x.id!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(x.id)||typeof x.title!=='string')return null;
   const str=v=>typeof v==='string'&&v.trim()?v.trim():null;
-  return{id:x.id,title:x.title.trim().slice(0,140),tag:x.tag==='nominations'?'nominations':null,
+  return{id:x.id,title:x.title.trim().slice(0,140),tag:x.tag==='nominations'?'nominations':null,nominees:cleanOrder(Array.isArray(x.nominees)?x.nominees:[]),
     points:(Array.isArray(x.points)?x.points:[]).map(str).filter(Boolean).slice(0,10).map(t=>t.slice(0,400)),
     eleves:cleanOrder(Array.isArray(x.eleves)?x.eleves:[]),
     sources:(Array.isArray(x.sources)?x.sources:[]).filter(o=>o&&str(o.name)&&typeof o.url==='string'&&/^https:\/\//.test(o.url)).slice(0,6)};}
@@ -481,7 +487,9 @@ async function loadRecaps(force){
   try{const r=await fetch('recaps.json?t='+Math.floor(Date.now()/60000),{cache:'no-store'});if(!r.ok)throw new Error(r.status);
     const j=await r.json();const seen={};
     S.recaps=(Array.isArray(j.items)?j.items:[]).map(cleanRecap).filter(x=>x&&!seen[x.id]&&(seen[x.id]=1)).sort((a,b)=>b.id.localeCompare(a.id));
-    S.recapErr=false;}catch(e){S.recapErr=true;}
+    S.recapErr=false;
+    const an={};S.recaps.slice().reverse().forEach(r=>{if(r.nominees.length>=2&&r.nominees.length<=8)an[String(recapWeek(r.id))]=r.nominees;});
+    S.autoNoms=an;if(S.realRaw)setReal(S.realRaw);}catch(e){S.recapErr=true;}
   S.recapLoaded=true;render();}
 function recapDate(id){const[y,m,d]=id.split('-').map(Number);return{y,m:m-1,d};}
 function recapWeek(id){const{y,m,d}=recapDate(id);return Math.max(0,Math.ceil((Date.UTC(y,m,d)-Date.UTC(LAUNCH[0],LAUNCH[1],LAUNCH[2]))/864e5/7));}
@@ -839,7 +847,7 @@ function vOrga(){
     week=`<div class="card"><h3>Semaine ${cur}</h3>
       <p class="muted">Choix des joueurs fermés le ${esc(fmtLock(lk))}.</p>
       <span class="sub">Immunisé cette semaine (désigné au prime précédent)</span>${pickRow(alive,id=>prevImm===id,'setPrevImm')}
-      <span class="sub">Nominés (mercredi)</span>${pickRow(alive,id=>w.nominees.includes(id),'nominee',id=>prevImm===id)}
+      <span class="sub">Nominés (mercredi)</span>${S.autoNomWeeks.has(cur)?`<p class="note">Remplis automatiquement d’après le résumé de la quotidienne. Vérifie-les : touche un élève pour l’ajouter ou le retirer, ta liste remplacera alors la liste automatique.</p>`:''}${pickRow(alive,id=>w.nominees.includes(id),'nominee',id=>prevImm===id)}
       <span class="sub">Prime de samedi · immunisé pour la semaine suivante</span>${pickRow(alive,id=>w.immune===id,'setImm',id=>S.pendingOut===id||w.out.includes(id))}
       <span class="sub">Prime de samedi · éliminé</span>${pickRow(cand,id=>S.pendingOut===id,'pendOut',id=>w.immune===id)}
       <div class="row"><button class="btn danger" data-act="confirmOut"${S.pendingOut?'':' disabled'}>${S.pendingOut?'Confirmer le KO de '+esc(C[S.pendingOut].name):'Choisis l’éliminé'}</button></div>
@@ -1005,9 +1013,9 @@ async function toggleRecapHidden(rid){
 async function saveSeason(mut){
   if(!fb)return;
   const next=JSON.parse(JSON.stringify(S.real));mut(next);
-  const prev=S.real;S.real=normSeason(next);S.season=viewSeason();render();
+  const prev=S.realRaw;setReal(normSeason(next));render();
   try{await fb.fs.setDoc(fb.fs.doc(fb.db,'season','main'),seasonDoc(next));}
-  catch(e){S.real=prev;S.season=viewSeason();render();toast(errText(e)==='refusé'?'Refusé : ton identifiant n’est pas encore dans les règles Firestore.':'Non enregistré ('+errText(e)+').');}
+  catch(e){setReal(prev||normSeason(null));render();toast(errText(e)==='refusé'?'Refusé : ton identifiant n’est pas encore dans les règles Firestore.':'Non enregistré ('+errText(e)+').');}
 }
 function editWeek(n,fn){saveSeason(s=>{const k=String(n);s.weeks[k]=Object.assign({immune:null,nominees:[],out:[]},s.weeks[k]);fn(s.weeks[k]);});}
 
@@ -1085,7 +1093,7 @@ async function initFirebase(){
     const app=appM.initializeApp(firebaseConfig),auth=authM.getAuth(app),db=fs.getFirestore(app);
     fb={db,fs,auth,authM};
     const fail=what=>err=>{S.note=`Lecture ${what} impossible (${errText(err)}).`;render();};
-    fs.onSnapshot(fs.doc(db,'season','main'),snap=>{S.snapOk=true;if(S.note===BLOCK_MSG&&S.authReady)S.note='';S.seasonExists=snap.exists();S.real=normSeason(snap.exists()?snap.data():null);S.season=viewSeason();S.conn='ok';render();},fail('de la saison'));
+    fs.onSnapshot(fs.doc(db,'season','main'),snap=>{S.snapOk=true;if(S.note===BLOCK_MSG&&S.authReady)S.note='';S.seasonExists=snap.exists();setReal(normSeason(snap.exists()?snap.data():null));S.conn='ok';render();},fail('de la saison'));
     fs.onSnapshot(fs.collection(db,'players'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.name==='string'&&x.name.trim())p[d.id]={name:x.name.trim().slice(0,40),order:cleanOrder(x.order),validated:x.validated===true};});S.players=p;syncMe();render();},fail('des joueurs'));
     fs.onSnapshot(fs.collection(db,'picks'),q=>{const p={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&Number.isInteger(x.week))p[x.week+'_'+x.uid]={uid:x.uid,week:x.week,elim:C[x.elim]?x.elim:null,immune:C[x.immune]?x.immune:null};});S.picks=p;render();},fail('des choix'));
     fs.onSnapshot(fs.collection(db,'likes'),q=>{const r={};q.forEach(d=>{const x=d.data();if(x&&typeof x.uid==='string'&&Number.isInteger(x.week))r[x.week+'_'+x.uid]={uid:x.uid,week:x.week,up:cleanOrder(x.up).slice(0,LK_MAX),down:cleanOrder(x.down).slice(0,LK_MAX)};});S.likes=r;render();},()=>{});
