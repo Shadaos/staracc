@@ -120,10 +120,11 @@ service cloud.firestore {
     match /notifprefs/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['prime', 'thread', 'all'])
+        && request.resource.data.keys().hasOnly(['prime', 'thread', 'all', 'noNom'])
         && request.resource.data.prime is bool
         && request.resource.data.thread is bool
-        && request.resource.data.all is bool;
+        && request.resource.data.all is bool
+        && (!('noNom' in request.resource.data) || request.resource.data.noNom is bool);
     }
 
     // Présence : dernière visite de chaque joueur (pour « X en ligne »).

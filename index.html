@@ -1244,7 +1244,7 @@ function enterOrga(){if(!isOrga()){render();return;}S.tab='orga';ls.set('sa14-ta
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0);}
 window.addEventListener('hashchange',()=>{if(location.hash==='#orga')enterOrga();});
 function setNoSpoil(v){S.noSpoil=v;ls.set('sa14-nospoil',v?'1':'0');S.season=viewSeason();render();}
-function setNoNom(v){S.noNom=v;ls.set('sa14-nonom',v?'1':'0');S.season=viewSeason();render();}
+function setNoNom(v){S.noNom=v;ls.set('sa14-nonom',v?'1':'0');S.season=viewSeason();render();syncNoNom();}
 document.addEventListener('change',e=>{if(e.target.id==='nospoil')setNoSpoil(e.target.checked);
   if(e.target.id==='nonom')setNoNom(e.target.checked);
   if(e.target.id==='lkanon')setLikeAnon(e.target.checked);
@@ -1356,7 +1356,7 @@ async function initFirebase(){
     let first=true;
     authM.onAuthStateChanged(auth,u=>{
       S.uid=u?u.uid:null;S.anon=!!(u&&u.isAnonymous);if(u)S.authReady=true;
-      if(u&&!u.isAnonymous){if(S.npUnsub)S.npUnsub();S.npUnsub=fs.onSnapshot(fs.doc(db,'notifprefs',u.uid),d=>{S.notifPrefs=d.exists()?d.data():null;render();},()=>{});}
+      if(u&&!u.isAnonymous){if(S.npUnsub)S.npUnsub();S.npUnsub=fs.onSnapshot(fs.doc(db,'notifprefs',u.uid),d=>{S.notifPrefs=d.exists()?d.data():null;render();if(registered())syncNoNom();},()=>{});}
       if(u&&S.snapOk&&S.note===BLOCK_MSG){S.note='';S.conn='ok';}
       S.login=u&&u.email?u.email.split('@')[0]:'';
       S.meDirty=false;S.me={name:'',order:[]};syncMe();render();
@@ -1371,7 +1371,10 @@ if(location.hash==='#orga')enterOrga();
 function pushOK(){return 'Notification' in window&&'serviceWorker' in navigator&&'PushManager' in window;}
 function notifOn(){return ls.get('sa14-push')==='1'&&pushOK()&&Notification.permission==='granted';}
 const NP_DEF={prime:true,thread:true,all:false};
-function myNotifPrefs(){return Object.assign({},NP_DEF,S.notifPrefs||{});}
+function myNotifPrefs(){return Object.assign({},NP_DEF,S.notifPrefs||{},{noNom:!!S.noNom});}
+// copie de l'option anti-spoiler des nominés dans le compte, pour que le robot de notifications la respecte
+function syncNoNom(){if(!fb||!S.uid||S.anon||!registered())return;const cur=S.notifPrefs||{};if(cur.noNom===!!S.noNom&&'prime' in cur)return;
+  fb.fs.setDoc(fb.fs.doc(fb.db,'notifprefs',S.uid),myNotifPrefs()).catch(()=>{});}
 async function setNotifPref(k,v){
   if(!fb||!S.uid)return;const prev=S.notifPrefs;S.notifPrefs=Object.assign(myNotifPrefs(),{[k]:v});render();
   try{await fb.fs.setDoc(fb.fs.doc(fb.db,'notifprefs',S.uid),myNotifPrefs());}

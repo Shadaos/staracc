@@ -7,7 +7,16 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 
 const SITE = 'https://pronos-starac.github.io/Star-Academy/';
-const DEF = { prime: true, thread: true, all: false };
+import { readFileSync } from 'node:fs';
+const DEF = { prime: true, thread: true, all: false, noNom: false };
+// --- anti-spoiler : mêmes règles que sur le site ---
+const LAUNCH = [2026, 9, 10];
+const parisOffset = (y, m, d) => { const t = Date.UTC(y, m, d); return (t >= Date.UTC(2026, 9, 25) && t < Date.UTC(2027, 2, 28)) ? 1 : 2; };
+const primeStart = n => { const y = LAUNCH[0], m = LAUNCH[1], d = LAUNCH[2] + 7 * n; return Date.UTC(y, m, d, 21 - parisOffset(y, m, d), 10); };
+const fold = t => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const SPOIL_RE = /\b(nomin\w*|nomme\w*|depart\w*|quitt\w*|abandon\w*|immuni\w*|elimin\w*|parti|partie de l.aventure|s.en va|annul\w*)\b/;
+const NAMES = { amel:'Amel', antoine:'Antoine', brieuc:'Brieuc', cameron:'Cameron', elija:'Elija', felix:'Félix', isabella:'Isabella', khalil:'Khalil', kylian:'Kylian', leeloo:'Leeloo', maud:'Maud', melina:'Mélina', morgan:'Morgan', noemie:'Noémie', tracy:'Tracy', ydriss:'Ydriss', zoe:'Zoé' };
+const recapWeek = id => { const [y, m, d] = id.split('-').map(Number); return Math.max(0, Math.ceil((Date.UTC(y, m - 1, d) - Date.UTC(LAUNCH[0], LAUNCH[1], LAUNCH[2])) / 864e5 / 7)); };
 if (!process.env.FIREBASE_SERVICE_ACCOUNT) { console.error('Secret FIREBASE_SERVICE_ACCOUNT manquant.'); process.exit(1); }
 initializeApp({ credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)) });
 const db = getFirestore();
@@ -23,6 +32,17 @@ console.log(`${fresh.size} nouveau(x) commentaire(s).`);
 const [allComments, prefsSnap, tokSnap, players] = await Promise.all([
   db.collection('comments').get(), db.collection('notifprefs').get(), db.collection('pushTokens').get(), db.collection('players').get()]);
 const prefs = {}; prefsSnap.forEach(d => prefs[d.id] = { ...DEF, ...d.data() });
+// élèves dont l'actualité est encore cachée (semaines dont le prime n'a pas commencé)
+const spoilNames = new Set();
+try {
+  const season = (await db.doc('season/main').get()).data() || {};
+  const weeks = season.weeks || {};
+  const add = (k, arr) => { if (Date.now() < primeStart(+k)) (arr || []).forEach(id => NAMES[id] && spoilNames.add(fold(NAMES[id]))); };
+  Object.entries(weeks).forEach(([k, w]) => { add(k, w.nominees); add(k, w.quit); add(k, w.immCands); });
+  const rec = JSON.parse(readFileSync('recaps.json', 'utf8'));
+  (rec.items || []).forEach(it => { const k = recapWeek(it.id); add(k, it.nominees); add(k, it.quit); add(k, it.immCands); });
+} catch (e) { console.log('Anti-spoiler : données indisponibles', e.message); }
+const isSpoil = text => { const t = fold(text); if (SPOIL_RE.test(t)) return true; for (const n of spoilNames) if (new RegExp('\\b' + n + '\\b').test(t)) return true; return false; };
 const pref = uid => prefs[uid] || DEF;
 const names = {}; players.forEach(d => names[d.id] = (d.data().name || 'Quelqu’un'));
 const tokens = {}; tokSnap.forEach(d => { const u = d.data().uid; (tokens[u] = tokens[u] || []).push(d.id); });
@@ -52,7 +72,8 @@ for (const [uid, list] of Object.entries(out)) {
   const recaps = [...new Set(list.map(x => x.recap))];
   const one = list.length === 1 ? list[0] : null;
   const title = one ? `💬 ${one.author} sur la quotidienne du ${day(one.recap)}` : `💬 ${list.length} nouveaux commentaires`;
-  const body = one ? one.text.slice(0, 140) : (recaps.length === 1 ? `Sur la quotidienne du ${day(recaps[0])}` : `Sur ${recaps.length} quotidiennes`);
+  const hide = pref(uid).noNom && list.some(x => isSpoil(x.text));
+  const body = hide ? '🙈 Message masqué (spoiler possible avant le prime)' : one ? one.text.slice(0, 140) : (recaps.length === 1 ? `Sur la quotidienne du ${day(recaps[0])}` : `Sur ${recaps.length} quotidiennes`);
   const link = SITE + '?rc=' + recaps[recaps.length - 1];
   const res = await getMessaging().sendEachForMulticast({
     tokens: tokens[uid], notification: { title, body },
