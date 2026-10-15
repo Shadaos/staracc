@@ -425,7 +425,11 @@ function wk(s,n){const w=s.weeks[String(n)]||{};return{immune:C[w.immune]?w.immu
 function outOrder(s){const o=[];weekKeys(s).forEach(n=>{const w=wk(s,n);w.quit.concat(w.out).forEach(id=>{if(!o.includes(id))o.push(id);});});return o;}
 function weekDone(s,n){const w=wk(s,n);return w.out.length>0||(w.noElim&&!!w.immune);}
 function curWeek(s){const ks=weekKeys(s);for(const n of ks){if(!weekDone(s,n))return n;}return ks.length?ks[ks.length-1]+1:1;}
-function places(s){const out=outOrder(s),P={};out.forEach((id,i)=>{P[id]=N-i;});const rem=ids.filter(id=>!out.includes(id));if(rem.length===1)P[rem[0]]=1;return P;}
+function quitSet(s){const q=new Set();weekKeys(s).forEach(n=>wk(s,n).quit.forEach(id=>q.add(id)));return q;}
+// Les élèves partis d'eux-mêmes ne comptent pas dans le classement final : les places se calculent entre les autres.
+function places(s){const q=quitSet(s),out=outOrder(s).filter(id=>!q.has(id)),M=N-q.size,P={};out.forEach((id,i)=>{P[id]=M-i;});
+  const rem=ids.filter(id=>!out.includes(id)&&!q.has(id));if(rem.length===1)P[rem[0]]=1;return P;}
+function rankedOrder(o,s){const q=quitSet(s);return o.filter(id=>!q.has(id));}
 function winnerId(s){const out=outOrder(s);const rem=ids.filter(id=>!out.includes(id));return rem.length===1?rem[0]:null;}
 function parisOffset(y,m,d){const t=Date.UTC(y,m,d);return(t>=Date.UTC(2026,9,25)&&t<Date.UTC(2027,2,28))?1:2;}
 function defaultLock(n){const d=new Date(Date.UTC(LAUNCH[0],LAUNCH[1],LAUNCH[2]+7*n+LOCK_DAYS));const y=d.getUTCFullYear(),m=d.getUTCMonth(),day=d.getUTCDate();
@@ -437,8 +441,8 @@ function weeklyScore(uid,s,picks){let elim=0,imm=0;
     if(p.immune&&w.immune&&w.immune===p.immune)imm+=SC.immune;});
   return{elim,imm};}
 function scoreOf(uid,p,s,picks){
-  const P=places(s),o=cleanOrder(p.order);let rank=0,bonus=0;
-  if(o.length===N){o.forEach((id,i)=>{const a=P[id];if(a==null)return;const d=Math.abs(a-(i+1));
+  const P=places(s),full=cleanOrder(p.order),o=rankedOrder(full,s);let rank=0,bonus=0;
+  if(full.length===N){o.forEach((id,i)=>{const a=P[id];if(a==null)return;const d=Math.abs(a-(i+1));
     if(d===0){rank+=SC.exact;if(a===1)bonus+=SC.winner;}else if(d===1)rank+=SC.near1;else if(d===2)rank+=SC.near2;});}
   const w=weeklyScore(uid,s,picks);
   return{rank,bonus,weekly:w.elim+w.imm,total:rank+bonus+w.elim+w.imm};
@@ -719,7 +723,7 @@ function fighter(id){
   if(open&&st.k==='nom')acts+=`<button class="btn ${p.elim===id?'danger':'ghost'}" data-act="pick" data-f="elim" data-id="${id}">${p.elim===id?`Tu ${PR(id)} vois partir ✓`:`Je ${PR(id)} vois partir`}</button>`;
   if(open&&st.k!=='ko'&&st.k!=='win')acts+=`<button class="btn ghost" data-act="pick" data-f="immune" data-id="${id}">${p.immune===id?`Tu ${PR(id)} vois immunisé${E(id)} ✓`:`Je ${PR(id)} vois immunisé${E(id)}`}</button>`;
   return`<div class="big">${av(id)}<div><h2>${esc(c.name)}</h2>${c.age?`<span class="muted">${c.age} ans</span><br>`:''}<span class="strow"><span class="status ${st.k}">${lbl(st.k,id)}</span><a class="btn ghost tf1" href="${tf1Url(id)}" target="_blank" rel="noopener">Sa page TF1 ↗</a></span></div></div>
-    ${st.k==='ko'?`<p class="muted kotxt">${st.quit?'A quitté l’aventure':'Éliminé'+E(id)} en semaine ${st.week}, à la place n°${st.place}.</p>`:''}
+    ${st.k==='ko'?`<p class="muted kotxt">${st.quit?'A quitté l’aventure':'Éliminé'+E(id)} en semaine ${st.week}, ${st.quit?'':`, à la place n°${st.place}`}.</p>`:''}
     <p class="fmini">Cote <b>${g.voters?winPct+' %':'—'}</b> · Moy. groupe <b>${avg?avg.toFixed(1).replace('.',','):'—'}</b> · Ton prono <b>${mi>-1?'n°'+(mi+1):'—'}</b></p>
     ${stat('Cote victoire',g.voters?winPct+' %':'—',winPct,true)}
     ${stat('Place moyenne du groupe',avg?avg.toFixed(1).replace('.',','):'—',avg?(N-avg)/(N-1)*100:0)}
@@ -945,7 +949,9 @@ function vPlayer(uid){
   const lkrows=anonOf(uid)&&!me?'<p class="muted">Ce joueur vote en anonyme.</p>':lkw.map(n=>{const x=S.likes[n+'_'+uid];
     return`<div><b>S${n}</b><span>❤️ ${x.up.length?x.up.map(id=>esc(C[id].name)).join(', '):'<span class="muted">rien</span>'}</span><span>🍅 ${x.down.length?x.down.map(id=>esc(C[id].name)).join(', '):'<span class="muted">rien</span>'}</span></div>`;}).join('')||'<p class="muted">Aucun vote.</p>';
   // classement final
-  const cards=o.map((id,i)=>{const a=P[id];let pts='';
+  const qs=quitSet(s),ro=rankedOrder(o,s);
+  const cards=o.map((id,i0)=>{if(qs.has(id))return`<div class="pcard"><span class="num">–</span>${av(id)}<b>${esc(C[id].name)}</b><small>départ · ne compte pas</small></div>`;
+    const i=ro.indexOf(id),a=P[id];let pts='';
     if(a!=null&&o.length===N){const d=Math.abs(a-(i+1));const v=d===0?SC.exact+(a===1?SC.winner:0):d===1?SC.near1:d===2?SC.near2:0;pts=v?`<b class="r-ok">+${v}</b>`:'<b class="r-bad">0</b>';}
     return`<div class="pcard${i===0?' first':''}"><span class="num">${i+1}</span>${av(id)}<b>${esc(C[id].name)}</b><small>${a!=null?'réel n°'+a+' ':''}${pts}</small></div>`;}).join('');
   return`<div class="row"><button class="btn ghost" data-act="player" data-id="">‹ Classement</button></div>
