@@ -739,7 +739,7 @@ function likeActs(id,st){const n=likeWeek();if(!n||st.k==='ko'||!registered()||S
   return`<button class="btn ${u?'':'ghost'}" data-act="like" data-k="up" data-id="${id}" aria-pressed="${u}">${u?'❤️ Coup de cœur ✓':'❤️ Coup de cœur'}</button><button class="btn ${d?'danger':'ghost'}" data-act="like" data-k="down" data-id="${id}" aria-pressed="${d}">${d?'🍅 Tomate ✓':'🍅 Tomate'}</button>`;}
 function vSelect(){
   return`<div class="sel-wrap"><div class="card fighter${S.sel?'':' empty'}">${S.sel&&C[S.sel]?fighter(S.sel):'<p class="pickhint">Touche un élève pour afficher sa fiche.</p>'}</div>
-    <div class="sel-main"><h2>Choisis ton champion</h2><div class="sel-grid">${ids.map(tile).join('')}</div></div></div>`;
+    <div class="sel-main"><h2>Choisis ton champion</h2><div class="sel-grid">${ids.filter(id=>status(id).k!=='ko').concat(ids.filter(id=>status(id).k==='ko').sort((x,y)=>(status(x).place||99)-(status(y).place||99))).map(tile).join('')}</div></div></div>`;
 }
 
 function chip(x){
