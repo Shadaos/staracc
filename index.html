@@ -1224,7 +1224,7 @@ document.addEventListener('click',e=>{
   if(a==='tab'){S.viewPlayer=null;S.tab=id;S.pendingOut=null;S.scrollTab=true;ls.set('sa14-tab',id);if(id==='daily')loadRecaps();render();window.scrollTo(0,0);}
   else if(a==='goSel'){S.sel=id;S.tab='select';S.scrollTab=true;ls.set('sa14-tab','select');render();window.scrollTo(0,0);}
   else if(a==='recapReload')loadRecaps(true);
-  else if(a==='cmToggle'){S.openCm.has(id)?S.openCm.delete(id):S.openCm.add(id);render();if(S.openCm.has(id)){const t=document.getElementById('cm-'+id);if(t)t.focus({preventScroll:true});}}
+  else if(a==='cmToggle'){S.openCm.has(id)?S.openCm.delete(id):S.openCm.add(id);render();if(S.openCm.has(id)){const t=document.getElementById('cm-'+id);if(t){t.scrollIntoView({block:'center',behavior:'smooth'});t.focus({preventScroll:true});}}}
   else if(a==='react')react(id,t.dataset.k);
   else if(a==='like')toggleLike(id,t.dataset.k);
   else if(a==='lkWeek'){S.lkWeek=+id;render();}
@@ -1402,6 +1402,13 @@ async function disableNotif(){
   ls.del('sa14-pushtok');toast('Notifications désactivées sur cet appareil.');
 }
 (function(){const q=new URLSearchParams(location.search),rc=q.get('rc');if(rc&&/^\d{4}-\d{2}-\d{2}$/.test(rc)){S.deepRc=rc;S.tab='daily';history.replaceState(null,'',location.pathname);}})();
+/* ===================== clavier mobile : garder le champ visible ===================== */
+const isTyping=el=>el&&el.tagName==='TEXTAREA'&&/^(cm-|sr-|pc-input)/.test(el.id);
+function revealField(el){if(!el)return;const vv=window.visualViewport;
+  const r=el.getBoundingClientRect(),vh=vv?vv.height:innerHeight,top=vv?vv.offsetTop:0;
+  if(r.bottom>top+vh-8||r.top<top+70){el.scrollIntoView({block:'center',behavior:'smooth'});}}
+document.addEventListener('focusin',e=>{if(isTyping(e.target)){const el=e.target;setTimeout(()=>revealField(el),350);setTimeout(()=>revealField(el),800);}});
+if(window.visualViewport)visualViewport.addEventListener('resize',()=>{const el=document.activeElement;if(isTyping(el))setTimeout(()=>revealField(el),60);});
 /* ===================== application installable ===================== */
 function standalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;}
 function isIOS(){return/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);}
