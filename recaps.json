@@ -1,6 +1,55 @@
 {
-  "updated": "2026-10-14T20:20:58+02:00",
+  "updated": "2026-10-15T20:01:53+02:00",
   "items": [
+    {
+      "id": "2026-10-15",
+      "title": "Khalil confirme son départ, les nominations sont annulées : pas d’éliminé samedi",
+      "tag": "nominations",
+      "points": [
+        "Nominations annulées : après le départ de Khalil, Mosimann et les professeurs renoncent à toutes les nominations de la semaine. Félix et Mélina ne sont plus menacés et personne ne sera éliminé au prime de samedi.",
+        "Après une nuit de réflexion et un tête-à-tête avec Mosimann dans son bureau, Khalil maintient sa décision et quitte le château après cinq jours : c’est un abandon, pas une élimination. Il est le premier élève de la promotion à partir.",
+        "Khalil évoque un mal-être, la perte de ses repères et l’envie de retrouver sa vie, tout en se disant serein et reconnaissant pour l’expérience.",
+        "Mosimann lui assure qu’il avait toute sa place à la Star Academy et regrette ce choix, sans parvenir à le faire changer d’avis.",
+        "Pour la suite, les profs avaient plusieurs options : garder les deux autres nommés, en ajouter un d’après le classement des évaluations, ou tout annuler. C’est la dernière qui l’emporte.",
+        "Mosimann dévoile le premier top 3 des évaluations : Morgan en tête, devant Amel et Cameron. Les trois s’affronteront samedi pour décrocher l’immunité.",
+        "La promotion compte désormais 16 élèves.",
+        "Annoncés pour le prime du samedi 17 octobre : Ben Mazué, Adèle Castillon et Naïka."
+      ],
+      "eleves": [
+        "khalil",
+        "felix",
+        "melina",
+        "morgan",
+        "amel",
+        "cameron"
+      ],
+      "sources": [
+        {
+          "name": "AlloCiné",
+          "url": "https://www.allocine.fr/tvactu/articles/article-1000227528.html"
+        },
+        {
+          "name": "Puremédias",
+          "url": "https://www.ozap.com/actu/star-academy-2026-khalil-a-t-il-vraiment-quitte-le-chateau/657484"
+        },
+        {
+          "name": "La DH",
+          "url": "https://www.dhnet.be/medias/television/2026/10/15/star-academy-le-couperet-est-tombe-pour-khalil-apres-son-annonce-choc-voici-sa-decision-et-limpact-sur-les-nominations-QHKOCTANKJABZI6GYNVYO4OJLY/"
+        },
+        {
+          "name": "Femin Actu",
+          "url": "https://www.feminactu.com/2026/10/star-academy-du-15-octobre/"
+        },
+        {
+          "name": "Paris Match Belgique",
+          "url": "https://parismatch.be/culture/programmes/2026/10/15/star-academy-khalil-a-t-il-quitte-lemission-KDMZEA2Z3FBO3N35ND7VWT4DY4"
+        },
+        {
+          "name": "Stéphane Larue",
+          "url": "https://stephanelarue.com/khalil-star-academy-depart-confirme-mosimann-revoit-les-nominations-avec-les-profs/"
+        }
+      ]
+    },
     {
       "id": "2026-10-14",
       "title": "Félix, Khalil et Mélina nommés… puis Khalil veut partir : nominations suspendues",
@@ -13,7 +62,8 @@
         "Avant cela, Khalil avait montré des signes de fatigue : repos dans sa chambre après son évaluation, répétitions de l’hymne manquées malgré le passage de Tracy, absence au premier cours d’expression scénique.",
         "Retour sur les évaluations : Mélina, sur Anyone Who Loves Me de Charlotte Cardin, oublie une partie des paroles et finit en larmes ; Félix, jugé trop timide, reste selon Mosimann en dessous de ses capacités.",
         "Amel revisite Monde de Luidji à la guitare et séduit Lydia Bouchard ; Leeloo, déçue d’elle-même, divise les profs, qui saluent sa voix mais regrettent son manque de confiance.",
-        "Les élèves répètent aussi l’hymne de la promotion, Dans un autre monde de Céline Dion, prévu en direct au prime de samedi."
+        "Les élèves répètent aussi l’hymne de la promotion, Dans un autre monde de Céline Dion, prévu en direct au prime de samedi.",
+        "Audience : 1,24 million de téléspectateurs (15,2 %), 100 000 de plus que la veille ; La roue de la fortune sur M6 fait presque autant (1,23 million) mais devance TF1 en part d’audience (16,1 %)."
       ],
       "eleves": [
         "khalil",
@@ -37,16 +87,16 @@
           "url": "https://www.purebreak.com/news/star-academy-2026-un-eleve-decide-de-quitter-laventure/266417"
         },
         {
-          "name": "Stéphane Larue",
-          "url": "https://stephanelarue.com/khalil-star-academy-nomme-il-veut-partir-les-nominations-suspendues/"
-        },
-        {
           "name": "Femin Actu",
           "url": "https://www.feminactu.com/2026/10/star-academy-du-14-octobre/"
         },
         {
           "name": "La DH",
           "url": "https://www.dhnet.be/medias/television/2026/10/14/coup-de-theatre-a-la-star-academy-jai-decide-de-quitter-laventure-les-nominations-suspendues-3ETVY2GGOVAPHA4U45GBK5UHSU/"
+        },
+        {
+          "name": "Stéphane Larue (audiences)",
+          "url": "https://stephanelarue.com/audience-quotidienne-star-academy-mercredi-14-octobre/"
         }
       ],
       "nominees": [
