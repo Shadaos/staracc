@@ -515,6 +515,8 @@ function netTrend(id,n){const a=likeStats(n)[id],net=a.up.length-a.down.length;
   return{net,tr:d>0?`<span class="trend up">▲${d}</span>`:d<0?`<span class="trend down">▼${-d}</span>`:''};}
 function sgn(v){return v>0?'+'+v:String(v);}
 function aliveIds(){const out=outOrder(S.season);return ids.filter(id=>!out.includes(id));}
+// Cœurs & tomates : un élève éliminé ou parti reste votable jusqu'à la fin de sa semaine, il disparaît la semaine suivante.
+function likeEligible(n){const gone=new Set();weekKeys(S.season).forEach(k=>{if(k<n){const w=wk(S.season,k);w.out.concat(w.quit).forEach(id=>gone.add(id));}});return ids.filter(id=>!gone.has(id));}
 /* ===================== prime en direct ===================== */
 const SONG_E=[['fire','🔥'],['up','👍'],['meh','😐'],['down','👎']],SONG_EC=SONG_E.map(x=>x[0]);
 Object.assign(S,{primeSel:null,primeSub:'chat',pchat:[],songs:[],sratings:{},primeUnsub:[],primeFor:null,songForm:null,spoilOk:{},openSong:null});
@@ -735,7 +737,7 @@ function fighter(id){
 function likeFiche(id){const n=likeWeek()||likeWeeks()[0];if(!n)return'';const a=likeStats(n)[id],t=netTrend(id,n);
   const who=[a.up.length?'❤️ '+whoNames(a.up):'',a.down.length?'🍅 '+whoNames(a.down):''].filter(Boolean).join(' · ');
   return`<p class="lkline">Cote d’amour S${n} : ❤️ ${a.up.length} · 🍅 ${a.down.length} · net ${sgn(t.net)}${t.tr}</p>${who?`<p class="lkwho gnote">${who}</p>`:''}`;}
-function likeActs(id,st){const n=likeWeek();if(!n||st.k==='ko'||!registered()||S.anon)return'';const my=myLikes(n),u=my.up.includes(id),d=my.down.includes(id);
+function likeActs(id,st){const n=likeWeek();if(!n||!likeEligible(n).includes(id)||!registered()||S.anon)return'';const my=myLikes(n),u=my.up.includes(id),d=my.down.includes(id);
   return`<button class="btn ${u?'':'ghost'}" data-act="like" data-k="up" data-id="${id}" aria-pressed="${u}">${u?'❤️ Coup de cœur ✓':'❤️ Coup de cœur'}</button><button class="btn ${d?'danger':'ghost'}" data-act="like" data-k="down" data-id="${id}" aria-pressed="${d}">${d?'🍅 Tomate ✓':'🍅 Tomate'}</button>`;}
 function vSelect(){
   return`<div class="sel-wrap"><div class="card fighter${S.sel?'':' empty'}">${S.sel&&C[S.sel]?fighter(S.sel):'<p class="pickhint">Touche un élève pour afficher sa fiche.</p>'}</div>
@@ -964,7 +966,7 @@ function vPlayer(uid){
 
 /* ---------- organisateur ---------- */
 function vLikes(){
-  const n=likeWeek(),reg=registered()&&!S.anon,my=myLikes(n),alive=aliveIds(),st=n?likeStats(n):null;
+  const n=likeWeek(),reg=registered()&&!S.anon,my=myLikes(n),alive=n?likeEligible(n):aliveIds(),st=n?likeStats(n):null;
   if(!n)return`<div class="card"><p class="muted">Les votes sont terminés pour cette saison.</p></div>`+baroBlock();
   const lk=lockAt(S.real,n);
   const items=alive.map(id=>{const u=my.up.includes(id),d=my.down.includes(id),a=st[id];
@@ -1169,7 +1171,7 @@ function needPlayer(){if(!fb){toast('Base de données indisponible.');return fal
 async function toggleLike(id,k){
   if(!C[id]||!['up','down'].includes(k)||!needPlayer())return;
   const n=likeWeek();if(!n){toast('Les votes sont fermés.');return;}
-  if(!aliveIds().includes(id)){toast('Cet élève n’est plus en lice.');return;}
+  if(!likeEligible(n).includes(id)){toast('Cet élève n’est plus en lice.');return;}
   const key=n+'_'+S.uid,prev=S.likes[key],my=myLikes(n),o=k==='up'?'down':'up';
   if(my[k].includes(id))my[k]=my[k].filter(x=>x!==id);
   else{if(my[k].length>=lkMax(n,k)){toast(k==='up'?'Tu as déjà donné tes '+lkMax(n,k)+' ❤️ : retire-en un d’abord.':'Tu as déjà lancé tes '+lkMax(n,k)+' 🍅 : retire-en une d’abord.');return;}
