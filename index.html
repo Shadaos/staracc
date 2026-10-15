@@ -686,7 +686,7 @@ function renderHead(){
   let banner=S.note;
   if(!banner&&S.conn==='noconfig')banner='Le site n’est pas encore relié à sa base de données : les pronos ne peuvent pas être enregistrés pour l’instant.';
   else if(!banner&&S.conn==='ok'&&!S.seasonExists)banner='La saison n’est pas encore ouverte par l’organisateur.';
-  const nomSpoil=S.noNom&&S.tab!=='orga'&&S.tab!=='prime'&&(S.nomMasked||S.recaps.some(recapNomHidden))?`<p class="note spoil">Nominés masqués jusqu’au début du prime, samedi 21h10. <button class="linkbtn" data-act="nonomOff">Tout afficher</button></p>`:'';
+  const nomSpoil=S.noNom&&S.tab!=='orga'&&S.tab!=='prime'&&(S.nomMasked||S.recaps.some(recapNomHidden))?`<p class="note spoil">Nominés et nouvelles de la semaine masqués jusqu’au début du prime, samedi 21h10. <button class="linkbtn" data-act="nonomOff">Tout afficher</button></p>`:'';
   const ns=registered()&&!S.anon&&S.tab!=='settings'&&S.tab!=='orga'&&S.tab!=='prime'&&ls.get('sa14-notifLater')!=='1'?notifState():'off';
   const nudge=['ready','ios-install','denied'].includes(ns)?`<p class="note notifnudge">🔔 Active les notifications : début du prime, commentaires des quotidiennes… <button class="linkbtn" data-act="notifShow">Comment faire</button> · <button class="linkbtn" data-act="notifLater">Plus tard</button></p>`:'';
   const spoil=S.noSpoil&&S.masked&&S.tab!=='orga'?`<p class="note spoil">Anti-spoiler activé : les résultats du dernier prime sont masqués jusqu’à dimanche minuit. <button class="linkbtn" data-act="spoil">Tout afficher</button></p>`:'';
@@ -707,7 +707,10 @@ function stat(label,val,pct,gold){
 function primeStart(n){const y=LAUNCH[0],m=LAUNCH[1],d=LAUNCH[2]+7*n;return Date.UTC(y,m,d,21-parisOffset(y,m,d),10);}
 function viewSeason(){let v=S.real;S.masked=0;S.nomMasked=0;
   if(S.noSpoil){const r=maskSeason(S.real,Date.now());S.masked=r.hidden;v=r.v;}
-  if(S.noNom){const now=Date.now();Object.keys(v.weeks).forEach(k=>{const w=v.weeks[k];if(w.nominees&&w.nominees.length&&now<primeStart(+k)){if(v===S.real)v=JSON.parse(JSON.stringify(S.real));v.weeks[k].nominees=[];S.nomMasked++;}});}
+  if(S.noNom){const now=Date.now();Object.keys(v.weeks).forEach(k=>{const w=v.weeks[k];
+    // tout ce que révèlent les quotidiennes de la semaine reste caché jusqu'au début du prime : nominés, départ, annulation, candidats à l'immunité
+    if(now<primeStart(+k)&&((w.nominees&&w.nominees.length)||(w.quit&&w.quit.length)||w.noElim||(w.immCands&&w.immCands.length))){
+      if(v===S.real)v=JSON.parse(JSON.stringify(S.real));const x=v.weeks[k];x.nominees=[];x.quit=[];x.noElim=null;x.immCands=[];S.nomMasked++;}});}
   return v;}
 function recapNomHidden(r){if(!S.noNom)return false;const w=recapWeek(r.id);if(Date.now()>=primeStart(w))return false;
   return S.recaps.some(x=>x.tag==='nominations'&&recapWeek(x.id)===w&&x.id<=r.id);}
