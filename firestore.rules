@@ -92,7 +92,7 @@ service cloud.firestore {
         && request.resource.data.week is int
         && lid == string(request.resource.data.week) + '_' + request.auth.uid
         && request.resource.data.up is list && request.resource.data.up.size() <= 3
-        && request.resource.data.down is list && request.resource.data.down.size() <= 3
+        && request.resource.data.down is list && request.resource.data.down.size() <= (request.resource.data.week == 1 ? 4 : 3)
         && request.resource.data.up.hasOnly(['amel','antoine','brieuc','cameron','elija','felix','isabella','khalil','kylian','leeloo','maud','melina','morgan','noemie','tracy','ydriss','zoe'])
         && request.resource.data.down.hasOnly(['amel','antoine','brieuc','cameron','elija','felix','isabella','khalil','kylian','leeloo','maud','melina','morgan','noemie','tracy','ydriss','zoe'])
         && request.time < season().locks[string(request.resource.data.week)];

@@ -48,6 +48,15 @@
           "name": "Stéphane Larue",
           "url": "https://stephanelarue.com/khalil-star-academy-depart-confirme-mosimann-revoit-les-nominations-avec-les-profs/"
         }
+      ],
+      "noElim": true,
+      "immCands": [
+        "morgan",
+        "amel",
+        "cameron"
+      ],
+      "quit": [
+        "khalil"
       ]
     },
     {
