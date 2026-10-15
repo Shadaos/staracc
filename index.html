@@ -989,7 +989,7 @@ function vLikes(){
       <button class="lkb" data-act="like" data-k="down" data-id="${id}" aria-pressed="${d}" aria-label="Tomate pour ${esc(C[id].name)}"${reg?'':' disabled'}>🍅<b>${a.down.length||''}</b></button></div></div>`;}).join('');
   return`<div class="card"><div class="wk-head"><h3>Cœurs & tomates · semaine ${n}</h3><span class="lock open">Ouvert · ferme dans ${fmtLeft(lk)}</span></div>
     <p class="muted">Chaque semaine, tu peux, si tu le souhaites, donner jusqu’à 3 ❤️ aux élèves que tu aimes et 3 🍅 à ceux qui t’agacent. Simple stat d’ambiance : ça ne compte pas dans les points.<br>Les votes repartent à zéro chaque dimanche minuit.</p>
-    <div class="lkbar"><span>❤️ ${my.up.length}/${lkMax(n,'up')}</span><span>🍅 ${my.down.length}/${lkMax(n,'down')}</span>${n===1?'<span class="muted">· 1 tomate bonus cette semaine (départ de Khalil)</span>':''}${saveLine()}</div>
+    <div class="lkbar"><span>❤️ ${my.up.length}/${lkMax(n,'up')}</span><span>🍅 ${my.down.length}/${lkMax(n,'down')}</span>${n===1?`<span class="muted">· 1 tomate bonus cette semaine${S.noNom&&Date.now()<primeStart(n)?'':' (départ de Khalil)'}</span>`:''}${saveLine()}</div>
     ${reg?`<label class="check"><input type="checkbox" id="lkanon"${anonOf(S.uid)?' checked':''}> Mes votes sont anonymes (les autres voient les totaux, pas mon nom)</label>`:'<p class="muted">Connecte-toi avec ton pseudo pour voter.</p>'}
     <div class="lk-grid">${items}</div></div>`+baroBlock();
 }
