@@ -1271,7 +1271,7 @@ document.addEventListener('click',e=>{
   else if(a==='cmDel')delComment(id);
   else if(a==='recapHide')toggleRecapHidden(id);
   else if(a==='sub'){S.sub=id;ls.set('sa14-sub',id);render();}
-  else if(a==='sel'){S.sel=id;render();}
+  else if(a==='sel'){S.sel=S.sel===id?null:id;render();}
   else if(a==='mode'){S.mode=id;render();}
   else if(a==='focus'){S.focus=S.focus===id?null:id;render();}
   else if(a==='editName'){S.nameEdit=true;render();const i=$('#pname');if(i)i.focus();}
