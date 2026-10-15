@@ -378,6 +378,7 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .picked{display:flex;align-items:center;gap:8px;margin:6px 0 0}.picked img{width:28px;height:28px;border-radius:3px}
 .song-av .cov{width:44px;height:44px;border-radius:4px;margin-right:4px;align-self:center}
 .pick.off{opacity:.75;cursor:default}
+.censored{color:var(--muted);font-style:italic}
 </style>
 </head>
 <body>
@@ -517,6 +518,16 @@ function sgn(v){return v>0?'+'+v:String(v);}
 function aliveIds(){const out=outOrder(S.season);return ids.filter(id=>!out.includes(id));}
 // Cœurs & tomates : un élève éliminé ou parti reste votable jusqu'à la fin de sa semaine, il disparaît la semaine suivante.
 function likeEligible(n){const gone=new Set();weekKeys(S.season).forEach(k=>{if(k<n){const w=wk(S.season,k);w.out.concat(w.quit).forEach(id=>gone.add(id));}});return ids.filter(id=>!gone.has(id));}
+/* ===================== censure anti-spoiler des messages ===================== */
+const fold=t=>String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+const SPOIL_RE=/\b(nomin\w*|nomme\w*|depart\w*|quitt\w*|abandon\w*|immuni\w*|elimin\w*|parti|partie de l.aventure|s.en va|annul\w*)\b/;
+Object.assign(S,{revealMsg:new Set()});
+function spoilNames(){if(!S.noNom)return null;const now=Date.now(),set=new Set();
+  Object.keys(S.real.weeks).forEach(k=>{if(now<primeStart(+k)){const w=wk(S.real,+k);w.nominees.concat(w.quit,w.immCands).forEach(id=>set.add(fold(C[id].name)));}});
+  return set;}
+function isSpoilMsg(text,id){if(!S.noNom||S.revealMsg.has(id))return false;const names=spoilNames();if(!names)return false;
+  const t=fold(text);if(SPOIL_RE.test(t))return true;for(const n of names){if(new RegExp('\\b'+n+'\\b').test(t))return true;}return false;}
+function msgBody(text,id){return isSpoilMsg(text,id)?`<p class="censored">🙈 Message masqué (spoiler possible avant le prime). <button class="linkbtn" data-act="revealMsg" data-id="${esc(id)}">Afficher</button></p>`:`<p>${esc(text)}</p>`;}
 /* ===================== prime en direct ===================== */
 const SONG_E=[['fire','🔥'],['up','👍'],['meh','😐'],['down','👎']],SONG_EC=SONG_E.map(x=>x[0]);
 Object.assign(S,{primeSel:null,primeSub:'chat',pchat:[],songs:[],sratings:{},primeUnsub:[],primeFor:null,songForm:null,spoilOk:{},openSong:null});
@@ -548,7 +559,7 @@ function vPrime(){
 function vChat(n){
   const reg=registered()&&!S.anon,orga=isOrga();
   const msgs=S.pchat.map(m=>{const p=S.players[m.uid],own=m.uid===S.uid;
-    return`<div class="pm${own?' own':''}"><span class="who"><b>${esc(p?p.name:'?')}</b> · ${esc(cmTime(m))}${own||orga?` <button class="linkbtn del" data-act="pcDel" data-id="${esc(m.id)}">${S.cmDelArm===m.id?'Confirmer':'✕'}</button>`:''}</span><p>${esc(m.text)}</p></div>`;}).join('');
+    return`<div class="pm${own?' own':''}"><span class="who"><b>${esc(p?p.name:'?')}</b> · ${esc(cmTime(m))}${own||orga?` <button class="linkbtn del" data-act="pcDel" data-id="${esc(m.id)}">${S.cmDelArm===m.id?'Confirmer':'✕'}</button>`:''}</span>${own?`<p>${esc(m.text)}</p>`:msgBody(m.text,m.id)}</div>`;}).join('');
   return`<div class="card chat"><div class="chatlog" id="chatlog">${msgs||'<p class="muted">Personne n’a encore écrit. Lance la discussion !</p>'}</div>
     ${reg?`<div class="cmform"><textarea id="pc-input" maxlength="300" rows="1" placeholder="Ton message… (Entrée pour envoyer)" aria-label="Message">${esc(S.drafts['pc']||'')}</textarea><button class="btn" data-act="pcSend" data-id="${n}">Envoyer</button></div>`:''}</div>`;
 }
@@ -1019,7 +1030,7 @@ function recapCard(r,orga){
   const cms=S.comments.filter(x=>x.recap===r.id),open=cms.length?!S.closedCm.has(r.id):S.openCm.has(r.id);
   const rx=REACT.map(([k,e])=>`<button class="rx" data-act="react" data-id="${r.id}" data-k="${k}" aria-pressed="${mine.has(k)}" aria-label="Réagir ${e}">${e}${c[k]?`<b>${c[k]}</b>`:''}</button>`).join('');
   const cmList=cms.map(x=>{const p=S.players[x.uid],own=x.uid===S.uid,canDel=own||orga;
-    return`<div class="cm"><span class="who"><b>${esc(p?p.name:'Ancien joueur')}</b> · ${esc(cmTime(x))}${canDel?`<button class="linkbtn del" data-act="cmDel" data-id="${esc(x.id)}">${S.cmDelArm===x.id?'Confirmer la suppression':'Supprimer'}</button>`:''}</span><p>${esc(x.text)}</p></div>`;}).join('');
+    return`<div class="cm"><span class="who"><b>${esc(p?p.name:'Ancien joueur')}</b> · ${esc(cmTime(x))}${canDel?`<button class="linkbtn del" data-act="cmDel" data-id="${esc(x.id)}">${S.cmDelArm===x.id?'Confirmer la suppression':'Supprimer'}</button>`:''}</span>${own?`<p>${esc(x.text)}</p>`:msgBody(x.text,x.id)}</div>`;}).join('');
   const form=reg?`<div class="cmform"><textarea id="cm-${r.id}" maxlength="500" rows="2" placeholder="Ton commentaire…" aria-label="Ton commentaire">${esc(S.drafts[r.id]||'')}</textarea><button class="btn" data-act="cmSend" data-id="${r.id}">Envoyer</button></div>`:'';
   return`<article class="card recap${hid?' hid':''}" id="rc-${r.id}">
     <div class="rc-h"><span class="rc-date">${esc(recapLabel(r.id))}</span>${r.tag==='nominations'?'<span class="pill">Nominations</span>':''}${hid?'<span class="pill">Masqué aux joueurs</span>':''}</div>
@@ -1269,6 +1280,7 @@ document.addEventListener('click',e=>{
   else if(a==='player'){S.viewPlayer=id||null;render();window.scrollTo(0,0);}
   else if(a==='spoil')setNoSpoil(false);
   else if(a==='nonomOff')setNoNom(false);
+  else if(a==='revealMsg'){S.revealMsg.add(id);render();}
   else if(a==='primeSel'){S.primeSel=+id;S.songForm=null;S.chatStick=true;render();}
   else if(a==='primeSub'){S.primeSub=id;S.chatStick=true;render();}
   else if(a==='primeSpoil'){S.spoilOk[+id]=true;render();}
