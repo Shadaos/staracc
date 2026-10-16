@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-15T20:01:53+02:00",
+  "updated": "2026-10-16T20:00:39+02:00",
   "items": [
     {
       "id": "2026-10-15",
@@ -10,9 +10,10 @@
         "Après une nuit de réflexion et un tête-à-tête avec Mosimann dans son bureau, Khalil maintient sa décision et quitte le château après cinq jours : c’est un abandon, pas une élimination. Il est le premier élève de la promotion à partir.",
         "Khalil évoque un mal-être, la perte de ses repères et l’envie de retrouver sa vie, tout en se disant serein et reconnaissant pour l’expérience.",
         "Mosimann lui assure qu’il avait toute sa place à la Star Academy et regrette ce choix, sans parvenir à le faire changer d’avis.",
-        "Pour la suite, les profs avaient plusieurs options : garder les deux autres nommés, en ajouter un d’après le classement des évaluations, ou tout annuler. C’est la dernière qui l’emporte.",
+        "Pour la suite, les profs avaient plusieurs options : garder seulement Félix et Mélina, ou ajouter un nommé d’après les évaluations (Tracy, qui avait échappé de peu aux nominations après sa prestation sur Happy, était évoquée). Ils choisissent finalement de tout annuler.",
         "Mosimann dévoile le premier top 3 des évaluations : Morgan en tête, devant Amel et Cameron. Les trois s’affronteront samedi pour décrocher l’immunité.",
         "La promotion compte désormais 16 élèves.",
+        "Audience : 1,24 million de téléspectateurs (16,3 %), stable en volume mais en hausse d’un point en part ; TF1 repasse devant La roue de la fortune sur M6 (1,08 million, 14,9 %). La rediffusion sur TFX ajoute 231 000 fidèles.",
         "Annoncés pour le prime du samedi 17 octobre : Ben Mazué, Adèle Castillon et Naïka."
       ],
       "eleves": [
@@ -42,11 +43,11 @@
         },
         {
           "name": "Paris Match Belgique",
-          "url": "https://parismatch.be/culture/programmes/2026/10/15/star-academy-khalil-a-t-il-quitte-lemission-KDMZEA2Z3FBO3N35ND7VWT4DY4"
+          "url": "https://www.parismatch.be/culture/medias/2026/10/16/star-academy-mosimann-prend-une-decision-radicale-et-repond-malgre-lui-a-une-demande-formulee-il-y-a-bien-longtemps-par-les-telespectateurs-UGV3BXVSIVHRZKDZ2OAV6BGGV4/"
         },
         {
-          "name": "Stéphane Larue",
-          "url": "https://stephanelarue.com/khalil-star-academy-depart-confirme-mosimann-revoit-les-nominations-avec-les-profs/"
+          "name": "Stéphane Larue (audiences)",
+          "url": "https://stephanelarue.com/audience-quotidienne-star-academy-jeudi-15-octobre/"
         }
       ],
       "noElim": true,
