@@ -1,6 +1,46 @@
 {
-  "updated": "2026-10-16T20:00:39+02:00",
+  "updated": "2026-10-17T20:01:05+02:00",
   "items": [
+    {
+      "id": "2026-10-16",
+      "title": "Ben Mazué au château : Cameron, Antoine et Maud passent l’audition du duo",
+      "tag": null,
+      "points": [
+        "Ben Mazué, invité d’honneur du prime de samedi, rend visite aux élèves et offre à chacun un livre dédicacé.",
+        "Il fait chanter Cameron, Antoine et Maud sur sa chanson Quand je marche ; selon Série News, il retient Cameron pour son duo du prime. Antoine prend bien la décision, Maud est plus déçue.",
+        "Premier cours de théâtre avec Papy : les élèves racontent ensemble une recette de cuisine. Ydriss, douzième aux évaluations et novice en théâtre, se montre à l’aise et reçoit les félicitations du prof.",
+        "Mosimann lance « All Access », un nouvel atelier qui prépare les élèves à la suite de leur carrière après l’émission.",
+        "Répétitions du prime : Isabella travaille Virile de Suzane avec Philippine Lavrey, et Zoé prépare son tableau chanté-dansé avec Jonathan Jenvrin et ses danseurs.",
+        "Rappel : après le départ de Khalil, les nominations de la semaine restent annulées, aucun des 16 élèves ne sera éliminé samedi.",
+        "Audience : 989 000 téléspectateurs (12,7 %), première fois sous le million cette saison, soit environ 250 000 de moins que jeudi ; La roue de la fortune sur M6 suit à 974 000 (13,3 %). La rediffusion sur TFX ajoute 172 000 fidèles."
+      ],
+      "eleves": [
+        "cameron",
+        "antoine",
+        "maud",
+        "ydriss",
+        "isabella",
+        "zoe"
+      ],
+      "sources": [
+        {
+          "name": "Série News",
+          "url": "https://www.serie-news.com/tnt/m6/58511-star-academy-du-16-octobre-2026-nominations-annulees-choix-de-ben-mazue-et-premieres-repetitions-du-prime-le-resume-de-la-quotidienne-17-10-2026/"
+        },
+        {
+          "name": "Gossip Addict (d’après Télé Star)",
+          "url": "https://www.gossip-addict.com/fr/article/general/star-academy-2026-mosimann-lance-l-atelier-all-access-sur-tf1-et-devoile-les-coulisses-parfois-rudes-du-metier/6ad28291304c27a66c0cb959"
+        },
+        {
+          "name": "Stéphane Larue (audiences)",
+          "url": "https://stephanelarue.com/audience-quotidienne-star-academy-vendredi-16-octobre/"
+        },
+        {
+          "name": "Femin Actu (audiences)",
+          "url": "https://www.feminactu.com/2026/10/audiences-tv-access-du-16-octobre-2026/"
+        }
+      ]
+    },
     {
       "id": "2026-10-15",
       "title": "Khalil confirme son départ, les nominations sont annulées : pas d’éliminé samedi",
