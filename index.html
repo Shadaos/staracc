@@ -525,9 +525,18 @@ Object.assign(S,{revealMsg:new Set()});
 function spoilNames(){if(!S.noNom)return null;const now=Date.now(),set=new Set();
   Object.keys(S.real.weeks).forEach(k=>{if(now<primeStart(+k)){const w=wk(S.real,+k);w.nominees.concat(w.quit,w.immCands).forEach(id=>set.add(fold(C[id].name)));}});
   return set;}
-function isSpoilMsg(text,id){if(!S.noNom||S.revealMsg.has(id))return false;const names=spoilNames();if(!names)return false;
+function isNomSpoil(text){if(!S.noNom)return false;const names=spoilNames();if(!names)return false;
   const t=fold(text);if(SPOIL_RE.test(t))return true;for(const n of names){if(new RegExp('\\b'+n+'\\b').test(t))return true;}return false;}
-function msgBody(text,id){return isSpoilMsg(text,id)?`<p class="censored">🙈 Message masqué (spoiler possible avant le prime). <button class="linkbtn" data-act="revealMsg" data-id="${esc(id)}">Afficher</button></p>`:`<p>${esc(text)}</p>`;}
+// anti-spoiler du dimanche : du début du prime à dimanche minuit, un message écrit pendant ou après le prime
+// est masqué s'il parle du résultat ou cite un élève
+const RESULT_RE=/\b(immuni\w*|elimin\w*|sauve\w*|gagn\w*|perd\w*|sort\w*|quitt\w*|depart\w*|parti|partie|ko|adieu|bye|vainqu\w*|bravo)\b/;
+function sunWeek(now){let n=0;while(primeStart(n+1)<=now)n++;return now>=primeStart(n)&&now<defaultLock(n)?n:-1;}
+function isSunSpoil(text,id){if(!S.noSpoil)return false;const now=Date.now(),n=sunWeek(now);if(n<0||S.spoilOk[n])return false;
+  const at=+String(id).split('_').pop();if(at&&at<primeStart(n))return false;
+  const t=fold(text);if(RESULT_RE.test(t))return true;return ids.some(i=>new RegExp('\\b'+fold(C[i].name)+'\\b').test(t));}
+function msgBody(text,id){if(S.revealMsg.has(id))return`<p>${esc(text)}</p>`;
+  const why=isNomSpoil(text)?'spoiler possible avant le prime':isSunSpoil(text,id)?'spoiler possible du prime, jusqu’à dimanche minuit':'';
+  return why?`<p class="censored">🙈 Message masqué (${why}). <button class="linkbtn" data-act="revealMsg" data-id="${esc(id)}">Afficher</button></p>`:`<p>${esc(text)}</p>`;}
 /* ===================== prime en direct ===================== */
 const SONG_E=[['fire','🔥'],['up','👍'],['meh','😐'],['down','👎']],SONG_EC=SONG_E.map(x=>x[0]);
 Object.assign(S,{primeSel:null,primeSub:'chat',pchat:[],songs:[],sratings:{},primeUnsub:[],primeFor:null,songForm:null,spoilOk:{},openSong:null});
@@ -1243,7 +1252,7 @@ function editWeek(n,fn){saveSeason(s=>{const k=String(n);s.weeks[k]=Object.assig
 function enterOrga(){if(!isOrga()){render();return;}S.tab='orga';ls.set('sa14-tab','orga');
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);render();window.scrollTo(0,0);}
 window.addEventListener('hashchange',()=>{if(location.hash==='#orga')enterOrga();});
-function setNoSpoil(v){S.noSpoil=v;ls.set('sa14-nospoil',v?'1':'0');S.season=viewSeason();render();}
+function setNoSpoil(v){S.noSpoil=v;ls.set('sa14-nospoil',v?'1':'0');S.season=viewSeason();render();syncNoNom();}
 function setNoNom(v){S.noNom=v;ls.set('sa14-nonom',v?'1':'0');S.season=viewSeason();render();syncNoNom();}
 document.addEventListener('change',e=>{if(e.target.id==='nospoil')setNoSpoil(e.target.checked);
   if(e.target.id==='nonom')setNoNom(e.target.checked);
@@ -1371,13 +1380,16 @@ if(location.hash==='#orga')enterOrga();
 function pushOK(){return 'Notification' in window&&'serviceWorker' in navigator&&'PushManager' in window;}
 function notifOn(){return ls.get('sa14-push')==='1'&&pushOK()&&Notification.permission==='granted';}
 const NP_DEF={prime:true,thread:true,all:false};
-function myNotifPrefs(){return Object.assign({},NP_DEF,S.notifPrefs||{},{noNom:!!S.noNom});}
-// copie de l'option anti-spoiler des nominés dans le compte, pour que le robot de notifications la respecte
-function syncNoNom(){if(!fb||!S.uid||S.anon||!registered())return;const cur=S.notifPrefs||{};if(cur.noNom===!!S.noNom&&'prime' in cur)return;
-  fb.fs.setDoc(fb.fs.doc(fb.db,'notifprefs',S.uid),myNotifPrefs()).catch(()=>{});}
+function myNotifPrefs(){return Object.assign({},NP_DEF,S.notifPrefs||{},{noNom:!!S.noNom,noSun:!!S.noSpoil});}
+// enregistre les préférences ; si les règles Firestore ne connaissent pas encore « noSun » (avant la VERSION 13), réessaie sans
+async function writeNotifPrefs(){const ref=fb.fs.doc(fb.db,'notifprefs',S.uid),p=myNotifPrefs();
+  try{await fb.fs.setDoc(ref,p);}catch(e){if(!String(e&&e.code).includes('permission-denied'))throw e;S.noSunOff=true;delete p.noSun;await fb.fs.setDoc(ref,p);}}
+// copie des options anti-spoiler (nominés, dimanche) dans le compte, pour que le robot de notifications les respecte
+function syncNoNom(){if(!fb||!S.uid||S.anon||!registered())return;const cur=S.notifPrefs||{};if(cur.noNom===!!S.noNom&&(S.noSunOff||cur.noSun===!!S.noSpoil)&&'prime' in cur)return;
+  writeNotifPrefs().catch(()=>{});}
 async function setNotifPref(k,v){
   if(!fb||!S.uid)return;const prev=S.notifPrefs;S.notifPrefs=Object.assign(myNotifPrefs(),{[k]:v});render();
-  try{await fb.fs.setDoc(fb.fs.doc(fb.db,'notifprefs',S.uid),myNotifPrefs());}
+  try{await writeNotifPrefs();}
   catch(e){S.notifPrefs=prev;render();toast('Réglage non enregistré ('+errText(e)+').');}}
 function notifPrefsBlock(){const np=myNotifPrefs();
   return`<div class="np"><span class="sub">Me prévenir pour</span>

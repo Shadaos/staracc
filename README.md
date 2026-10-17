@@ -37,7 +37,7 @@ Une fois ces étapes faites, tes amis peuvent jouer.
 
 **Les joueurs**, dans l'onglet *Mon prono* (après avoir saisi pseudo et code) :
 - **Cette semaine** : ils choisissent qui sera éliminé (parmi les nominés) et qui sera immunisé. C'est enregistré dès qu'ils touchent un élève, et fermé automatiquement le dimanche à minuit.
-- **Anti-spoiler** : chaque joueur peut cocher « Je regarde le prime le dimanche ». Les résultats du samedi sont alors masqués pour lui jusqu'à dimanche minuit.
+- **Anti-spoiler** : chaque joueur peut cocher « Je regarde le prime le dimanche ». Les résultats du samedi sont alors masqués pour lui jusqu'à dimanche minuit. Du début du prime (samedi 21h10) à dimanche minuit, les commentaires écrits pendant ou après le prime qui citent un élève ou parlent du résultat sont aussi censurés (bouton « Afficher »), ainsi que le texte des notifications de commentaires. Pour le robot des notifications, l'option est enregistrée dans `notifprefs` (champ `noSun`, règles Firestore VERSION 13).
 - **Pronostic final** : ils touchent les 17 élèves dans l'ordre (le 1er touché est le vainqueur). Une fois les 17 placés, la grille se range dans leur ordre : on peut alors déplacer un élève par glisser-déposer, puis cocher « Je valide mon classement ». Chaque clic est enregistré automatiquement, jusqu'à ce que tu verrouilles les classements.
 
 **Toi**, dans l'*Espace organisateur* :

@@ -8,7 +8,7 @@ import { getMessaging } from 'firebase-admin/messaging';
 
 const SITE = 'https://pronos-starac.github.io/Star-Academy/';
 import { readFileSync } from 'node:fs';
-const DEF = { prime: true, thread: true, all: false, noNom: false };
+const DEF = { prime: true, thread: true, all: false, noNom: false, noSun: false };
 // --- anti-spoiler : mêmes règles que sur le site ---
 const LAUNCH = [2026, 9, 10];
 const parisOffset = (y, m, d) => { const t = Date.UTC(y, m, d); return (t >= Date.UTC(2026, 9, 25) && t < Date.UTC(2027, 2, 28)) ? 1 : 2; };
@@ -16,6 +16,14 @@ const primeStart = n => { const y = LAUNCH[0], m = LAUNCH[1], d = LAUNCH[2] + 7 
 const fold = t => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const SPOIL_RE = /\b(nomin\w*|nomme\w*|depart\w*|quitt\w*|abandon\w*|immuni\w*|elimin\w*|parti|partie de l.aventure|s.en va|annul\w*)\b/;
 const NAMES = { amel:'Amel', antoine:'Antoine', brieuc:'Brieuc', cameron:'Cameron', elija:'Elija', felix:'Félix', isabella:'Isabella', khalil:'Khalil', kylian:'Kylian', leeloo:'Leeloo', maud:'Maud', melina:'Mélina', morgan:'Morgan', noemie:'Noémie', tracy:'Tracy', ydriss:'Ydriss', zoe:'Zoé' };
+// anti-spoiler du dimanche : du début du prime à dimanche minuit (lundi 0h, heure de Paris)
+const defaultLock = n => { const d = new Date(Date.UTC(LAUNCH[0], LAUNCH[1], LAUNCH[2] + 7 * n + 2)); const y = d.getUTCFullYear(), m = d.getUTCMonth(), day = d.getUTCDate();
+  return Date.UTC(y, m, day, 0 - parisOffset(y, m, day), 0); };
+const RESULT_RE = /\b(immuni\w*|elimin\w*|sauve\w*|gagn\w*|perd\w*|sort\w*|quitt\w*|depart\w*|parti|partie|ko|adieu|bye|vainqu\w*|bravo)\b/;
+const sunWeek = now => { let n = 0; while (primeStart(n + 1) <= now) n++; return now >= primeStart(n) && now < defaultLock(n) ? n : -1; };
+const SUN = sunWeek(Date.now());
+const isSunSpoil = (text, at) => { if (SUN < 0 || at < primeStart(SUN)) return false; const t = fold(text);
+  return RESULT_RE.test(t) || Object.values(NAMES).some(n => new RegExp('\\b' + fold(n) + '\\b').test(t)); };
 const recapWeek = id => { const [y, m, d] = id.split('-').map(Number); return Math.max(0, Math.ceil((Date.UTC(y, m - 1, d) - Date.UTC(LAUNCH[0], LAUNCH[1], LAUNCH[2])) / 864e5 / 7)); };
 if (!process.env.FIREBASE_SERVICE_ACCOUNT) { console.error('Secret FIREBASE_SERVICE_ACCOUNT manquant.'); process.exit(1); }
 initializeApp({ credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)) });
@@ -60,7 +68,7 @@ fresh.forEach(d => {
     if (uid === c.uid) continue;
     const p = pref(uid);
     const inThread = (c.recap + '|' + uid) in lastAtOf && lastAtOf[c.recap + '|' + uid] < c.at.toMillis();
-    if (p.all || (p.thread && inThread)) (out[uid] = out[uid] || []).push({ recap: c.recap, author: names[c.uid] || 'Quelqu’un', text: c.text });
+    if (p.all || (p.thread && inThread)) (out[uid] = out[uid] || []).push({ recap: c.recap, author: names[c.uid] || 'Quelqu’un', text: c.text, at: c.at.toMillis() });
   }
 });
 
@@ -73,7 +81,8 @@ for (const [uid, list] of Object.entries(out)) {
   const one = list.length === 1 ? list[0] : null;
   const title = one ? `💬 ${one.author} sur la quotidienne du ${day(one.recap)}` : `💬 ${list.length} nouveaux commentaires`;
   const hide = pref(uid).noNom && list.some(x => isSpoil(x.text));
-  const body = hide ? '🙈 Message masqué (spoiler possible avant le prime)' : one ? one.text.slice(0, 140) : (recaps.length === 1 ? `Sur la quotidienne du ${day(recaps[0])}` : `Sur ${recaps.length} quotidiennes`);
+  const hideSun = !hide && pref(uid).noSun && list.some(x => isSunSpoil(x.text, x.at));
+  const body = hide ? '🙈 Message masqué (spoiler possible avant le prime)' : hideSun ? '🙈 Message masqué (spoiler possible du prime)' : one ? one.text.slice(0, 140) : (recaps.length === 1 ? `Sur la quotidienne du ${day(recaps[0])}` : `Sur ${recaps.length} quotidiennes`);
   const link = SITE + '?rc=' + recaps[recaps.length - 1];
   const res = await getMessaging().sendEachForMulticast({
     tokens: tokens[uid], notification: { title, body },
