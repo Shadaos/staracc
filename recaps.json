@@ -1,6 +1,42 @@
 {
-  "updated": "2026-10-17T20:01:05+02:00",
+  "updated": "2026-10-17T20:14:29+02:00",
   "items": [
+    {
+      "id": "2026-10-17",
+      "title": "Dernières répétitions avant le prime : Félix et Mélina peaufinent leur duo avec Lydia",
+      "tag": null,
+      "points": [
+        "Journée de répétitions : tous les élèves partent sur le plateau du prime, sauf Félix et Mélina, qui restent au château.",
+        "Félix et Mélina, dont les nominations ont été annulées, alternent sport le matin avec Ladji et répétitions l’après-midi pour leur duo Up Where We Belong.",
+        "Lydia Bouchard veut en faire un grand moment qui fera regretter aux profs de les avoir nommés, mais la justesse pèche : Félix démarre sur une mauvaise note et Mélina trouve que leurs voix ont du mal à s’accorder. Les deux se serrent les coudes.",
+        "Sur le plateau, Zoé répète avec Jonathan Jenvrin le premier tableau chanté-dansé de la saison ; un appel de sa mère en fin de journée l’émeut beaucoup.",
+        "Isabella répète la chanson d’ouverture du prime, Leeloo travaille au 217 son duo avec Naïka et Elija prépare sa carte blanche avec Adèle Castillon.",
+        "Le soir, toute la promo se retrouve au château pour un dîner où chacun fait le bilan des répétitions.",
+        "Annoncé pour le prime de ce soir : Zoé sur Bring Me to Life d’Evanescence, Isabella sur Virile de Suzane, un groupe éphémère (Kylian, Ydriss, Brieuc, Morgan, Antoine) sur On va s’aimer, Amel et Kylian sur XY, et un autoportrait pour Noémie."
+      ],
+      "eleves": [
+        "felix",
+        "melina",
+        "zoe",
+        "isabella",
+        "leeloo",
+        "elija"
+      ],
+      "sources": [
+        {
+          "name": "Stars Actu",
+          "url": "https://www.stars-actu.fr/2026/10/star-academy-du-17-octobre-2026-resume-et-replay-de-la-quotidienne/"
+        },
+        {
+          "name": "Viralmag",
+          "url": "https://viralmag.fr/felix-et-melina-star-academy-2026-leur-duo-comme-en-finale/"
+        },
+        {
+          "name": "Femin Actu",
+          "url": "https://www.feminactu.com/2026/10/star-academy-du-17-octobre/"
+        }
+      ]
+    },
     {
       "id": "2026-10-16",
       "title": "Ben Mazué au château : Cameron, Antoine et Maud passent l’audition du duo",
