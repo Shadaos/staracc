@@ -357,6 +357,9 @@ footer{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-si
 .live{color:#ff4d6a;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:13px;animation:blink 1.6s infinite}
 @keyframes blink{50%{opacity:.45}}
 .livedot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff4d6a;margin-left:5px;vertical-align:middle;animation:blink 1.6s infinite}
+.livepill{display:inline-flex;align-items:center;gap:5px;margin-left:6px;padding:2px 7px 2px 6px;border-radius:999px;background:#ff4d6a;color:#fff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;vertical-align:middle;line-height:1.4;box-shadow:0 0 10px rgba(255,77,106,.55)}
+.livepill i{width:6px;height:6px;border-radius:50%;background:#fff;animation:blink 1.2s infinite}
+.tab.onair{color:#ff8a9c}.tab.onair[aria-selected="true"]{color:var(--text)}
 .prime-head h2{font-size:22px;margin:0}
 .chat{gap:10px}.chatlog{display:flex;flex-direction:column;gap:8px;max-height:min(60vh,520px);overflow:auto;padding-right:4px}
 .pm{background:var(--panel2);border:1px solid var(--line);border-radius:10px 10px 10px 2px;padding:6px 10px;max-width:88%;align-self:flex-start}
@@ -701,7 +704,7 @@ function errText(e){const c=e&&e.code||'';
 /* ===================== vues ===================== */
 function renderHead(){
   const s=S.season,out=outOrder(s).length,alive=N-out,cur=curWeek(s),win=winnerId(s),np=Object.keys(S.players).length;
-  const tabs=[['select','Sélection'],['mine','Mon prono'],['prime','Prime'+(primeLive(latestPrime())?' <span class="livedot" aria-label="en direct"></span>':'')],['daily','Quotidiennes'+(S.tab!=='daily'&&hasNewRecap()?'<span class="dot" aria-label="nouveau"></span>':'')],['bracket','Tableau'],['board','Classement'],['settings','Paramètres']];
+  const tabs=[['select','Sélection'],['mine','Mon prono'],['prime','Prime'+(primeLive(latestPrime())?'<span class="livepill" aria-label="prime en direct"><i></i>En direct</span>':'')],['daily','Quotidiennes'+(S.tab!=='daily'&&hasNewRecap()?'<span class="dot" aria-label="nouveau"></span>':'')],['bracket','Tableau'],['board','Classement'],['settings','Paramètres']];
   if(isOrga())tabs.push(['orga','Orga']);
   let banner=S.note;
   if(!banner&&S.conn==='noconfig')banner='Le site n’est pas encore relié à sa base de données : les pronos ne peuvent pas être enregistrés pour l’instant.';
@@ -714,7 +717,7 @@ function renderHead(){
     <div class="brand"><h1>Pronos <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l3.1 6.6 7.2.9-5.3 5 1.4 7.1L12 17.6l-6.4 3.5 1.4-7.1-5.3-5 7.2-.9z"/></svg><em>Star Ac’</em></h1>
       <span class="meta">Saison 14 · ${win?'Vainqueur : '+esc(C[win].name):alive+' en lice · semaine '+cur} · ${np} joueur${np>1?'s':''} · <button class="onl" data-act="online" aria-expanded="${!!S.showOnline}"><i class="gdot"></i>${onlineIds().length} en ligne</button></span></div>${S.showOnline?onlinePanel():''}
     <div class="when"><span class="pill">Nominations <b>${esc(nextDayShort(3))}</b></span><span class="pill">Prime <b>${esc(nextDayShort(6))}</b></span></div>
-    <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${S.tab===k}" data-act="tab" data-id="${k}">${l}</button>`).join('')}</nav>
+    <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab${k==='prime'&&primeLive(latestPrime())?' onair':''}" role="tab" aria-selected="${S.tab===k}" data-act="tab" data-id="${k}">${l}</button>`).join('')}</nav>
     ${banner?`<p class="note">${esc(banner)}</p>`:''}${spoil}${nomSpoil}${nudge}`;
 }
 function tile(id){
@@ -1342,7 +1345,7 @@ document.addEventListener('click',e=>{
   else if(a==='quitOrga'){S.tab='select';ls.set('sa14-tab','select');render();}
 });
 $('#orga-link').addEventListener('click',e=>{e.preventDefault();enterOrga();});
-setInterval(()=>{const before=S.masked;S.season=viewSeason();if((before!==S.masked||(S.tab==='mine'&&S.sub==='week'))&&!document.activeElement?.matches('input'))render();},60000);
+setInterval(()=>{const before=S.masked,wasLive=S.onAir;S.onAir=primeLive(latestPrime());S.season=viewSeason();if((before!==S.masked||wasLive!==S.onAir||(S.tab==='mine'&&S.sub==='week'))&&!document.activeElement?.matches('input'))render();},60000);
 
 /* ===================== connexion Firebase ===================== */
 async function initFirebase(){
